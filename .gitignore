@@ -1,0 +1,6 @@
+.sconsign.dblite
+config.h
+custom.py
+dragoon
+*.o
+*.gch
