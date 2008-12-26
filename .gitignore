@@ -4,3 +4,6 @@ custom.py
 dragoon
 *.o
 *.gch
+*.swp
+*.html
+gendoc/gendoc

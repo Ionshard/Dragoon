@@ -22,6 +22,10 @@ version = '0.0.0'
 gch_builder = Builder(action = '$CC $CFLAGS $CCFLAGS $_CCCOMCOM ' +
                                '-x c-header -c $SOURCE -o $TARGET')
 
+# Convert a POSIX path to OS-indepentant (stub)
+def path(p):
+        return p
+
 # Create a default environment. Have to set environment variables after
 # initialization so that SCons doesn't mess them up.
 default_env = Environment(ENV = os.environ, BUILDERS = {'GCH' : gch_builder})
@@ -130,6 +134,41 @@ game_config = game_env.Command('config.h', '', WriteConfigH)
 game_env.Depends(game_config, 'SConstruct')
 game_env.Depends(game_obj + game_pch, game_config)
 game_env.Depends(game_config, config_file)
+
+################################################################################
+#
+# scons gendoc -- Generate automatic documentation
+#
+################################################################################
+gendoc_env = default_env.Clone()
+gendoc_header = path('gendoc/header.html')
+gendoc = gendoc_env.Program(path('gendoc/gendoc'),
+                            glob.glob(path('gendoc/*.c')))
+
+def GendocOutput(output, in_path, title, inputs = []):
+        output = os.path.join('gendoc', 'docs', output)
+        inputs = (glob.glob(os.path.join(in_path, '*.h')) +
+                  glob.glob(os.path.join(in_path, '*.c')) + inputs);
+        cmd = gendoc_env.Command(output, inputs, path('gendoc/gendoc') +
+                                 ' --file $TARGET --header "' +
+                                 gendoc_header + '" --title "' + title + '" ' +
+                                 ' '.join(inputs))
+        gendoc_env.Depends(cmd, gendoc)
+        gendoc_env.Depends(cmd, gendoc_header)
+
+# Gendoc HTML files
+GendocOutput('gendoc.html', 'gendoc', 'GenDoc')
+GendocOutput('shared.html', path('src/common'), package.title() + ' Shared',
+             [path('src/render/r_public.h'),
+              path('src/physics/p_public.h'),
+              path('src/game/g_public.h'),] +
+             glob.glob(path('src/render/*.c')) +
+             glob.glob(path('src/physics/*.c')) +
+             glob.glob(path('src/game/*.c')))
+GendocOutput('render.html', path('src/render'), package.title() + ' Render')
+GendocOutput('game.html', path('src/game'), package.title() + ' Game')
+GendocOutput('physics.html', path('src/physics'),
+             package.title() + ' Physics')
 
 ################################################################################
 #
