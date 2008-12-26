@@ -139,8 +139,10 @@ int main(int argc, char *argv[])
                 G_loadTest();
         else if (g_edit[0])
                 G_initEditor();
-        else
+        else {
+                G_loadMap("map/limbo", CVec_zero());
                 G_showMenu();
+        }
 
         /* Main loop */
         C_initTime();

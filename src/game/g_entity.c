@@ -15,20 +15,6 @@
 /* Named linked list of class definitions */
 CNamed *g_classRoot;
 
-/* Box class structure */
-typedef struct {
-        GEntityClass entity;
-} GBoxClass;
-
-/* Box entity structure */
-typedef struct {
-        PEntity entity;
-        RSprite sprite;
-} GBox;
-
-/* Game camera offset */
-CVec g_camera;
-
 /******************************************************************************\
  Parse a token/value pair from a generic class definition. Returns TRUE if the
  token was valid or FALSE if it is not a generic class token.
@@ -62,52 +48,6 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
 }
 
 /******************************************************************************\
- Test box event function.
-\******************************************************************************/
-static int GBox_eventFunc(GBox *box, int event, void *args)
-{
-        if (event == PE_UPDATE) {
-                box->sprite.origin = box->entity.origin;
-                box->sprite.size = box->entity.size;
-                RSprite_draw(&box->sprite);
-        }
-        return 0;
-}
-
-/******************************************************************************\
- Spawn a fixture box.
-\******************************************************************************/
-GBox *GBox_spawn(GBoxClass *boxClass, GSpawnParams *params)
-{
-        GBox *box;
-
-        C_new(&box);
-        RSprite_init(&box->sprite, boxClass->entity.spriteName);
-        box->sprite.z = -1;
-        box->entity.eventFunc = (PEventFunc)GBox_eventFunc;
-        box->entity.origin = params->origin;
-        box->entity.size = params->size;
-        PEntity_spawn(&box->entity, "Box");
-        return box;
-}
-
-/******************************************************************************\
- Parse a test box class definition.
-\******************************************************************************/
-static void GBox_parseClass(FILE *file, const char *className)
-{
-        GBoxClass *boxClass;
-        const char *token;
-
-        boxClass = CNamed_get(&g_classRoot, className, sizeof (GBoxClass));
-        boxClass->entity.spawnFunc = (GSpawnFunc)GBox_spawn;
-        for (token = C_token(file); token[0]; token = C_token(file))
-                if (GEntityClass_parseToken(&boxClass->entity, file, token));
-                else
-                        C_warning("Unknown box param '%s'", token);
-}
-
-/******************************************************************************\
  Load entity definitions.
 \******************************************************************************/
 void G_parseEntityCfg(const char *filename)
@@ -130,10 +70,15 @@ void G_parseEntityCfg(const char *filename)
                 C_strncpy_buf(className, token);
 
                 /* Parse class properties */
-                if (!C_openBrace(file))
+                if (!C_openBrace(file)) {
+                        C_warning("Class definition '%s' has no body",
+                                  className);
                         continue;
+                }
                 if (!strcasecmp(baseName, "box"))
                         GBox_parseClass(file, className);
+                else if (!strcasecmp(baseName, "fountain"))
+                        GFountain_parseClass(file, className);
                 else
                         C_warning("Unknown entity base '%s'", baseName);
                 C_closeBrace(file);
@@ -149,7 +94,7 @@ PEntity *G_spawn(const char *className, const GSpawnParams *params)
         GEntityClass *entityClass;
         PEntity *entity;
 
-        if (!(entityClass = CNamed_get(&g_classRoot, className, 0))) {
+        if (!(entityClass = CNamed_get(g_classRoot, className))) {
                 C_warning("Class '%s' not found", className);
                 return NULL;
         }
@@ -164,6 +109,6 @@ PEntity *G_spawn(const char *className, const GSpawnParams *params)
 void G_cleanupEntities(void)
 {
         P_cleanupEntities();
-        CNamed_free(&g_classRoot, NULL);
+        CNamed_freeAll(&g_classRoot);
 }
 

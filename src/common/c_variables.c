@@ -43,7 +43,7 @@ static CNamed *varRoot;
 \******************************************************************************/
 void C_cleanupVars(void)
 {
-        CNamed_free(&varRoot, NULL);
+        CNamed_freeAll(&varRoot);
 }
 
 /******************************************************************************\
@@ -57,11 +57,12 @@ void C_register(void *ptr, const char *name, const char *comment,
 
         /* Allocate memory for variable information and stock value */
         memSize = size > sizeof (var->stock) ? size - sizeof (var->stock) : 0;
-        var = CNamed_get(&varRoot, name, sizeof (Variable) + memSize);
+        var = CNamed_alloc(&varRoot, name, sizeof (Variable) + memSize,
+                           NULL, FALSE);
 
         /* Overwrote an old name */
-        if (var->p.v)
-                C_error("Overwrote variable '%s'", name);
+        if (!var)
+                C_error("Tried to redefine variable '%s'", name);
 
         var->type = type;
         var->p.v = ptr;
@@ -117,7 +118,7 @@ void C_setVar(const char *name, const char *value)
         Variable *var;
 
         /* Get the variable */
-        if (!(var = CNamed_get(&varRoot, name, 0))) {
+        if (!(var = CNamed_get(varRoot, name))) {
                 C_warning("Variable '%s' not defined", name);
                 return;
         }
@@ -228,7 +229,7 @@ void C_parseVarConfig(const char *filename)
         while (!feof(file)) {
                 if (!(key = C_token(file)) || !key[0])
                         continue;
-                if (!(var = CNamed_get(&varRoot, key, 0))) {
+                if (!(var = CNamed_get(varRoot, key))) {
                         C_warning("Unknown variable '%s'", key);
                         continue;
                 }

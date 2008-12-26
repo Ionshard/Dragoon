@@ -100,9 +100,17 @@ typedef enum {
         CVT_STRING,
 } CVarType;
 
+/* Named structure allocation policy for existing objects */
+typedef enum {
+        CNP_NULL = FALSE,
+        CNP_OVERWRITE = TRUE,
+        CNP_RETURN,
+} CNamedPolicy;
+
 /* Named structure single-linked-list */
 typedef struct CNamed {
         char name[C_NAME_MAX];
+        CCallback cleanupFunc;
         struct CNamed *next;
 } CNamed;
 
@@ -124,6 +132,16 @@ char *C_readString(FILE *, int *length);
 const char *C_token(FILE *);
 #define C_token_int(f) atoi(C_token(f))
 #define C_token_float(f) atof(C_token(f))
+
+/* CLink.c */
+void CLink_add(CLink *, CLink **root, void *data);
+void CLink_add_rear(CLink *, CLink **root, void *data);
+void CLink_back(CLink *);
+void CLink_forward(CLink *);
+#define CLink_get(l) ((l) ? (l)->data : NULL)
+#define CLink_next(l) ((l) ? (l)->next : NULL)
+#define CLink_prev(l) ((l) ? (l)->prev : NULL)
+void CLink_remove(CLink *);
 
 /* c_log.c */
 #if CHECKED
@@ -172,23 +190,19 @@ void C_testMemCheck(int test);
 #define C_realloc(a, b) realloc(a, b)
 #define C_testMemCheck(a)
 #endif
-void CLink_add(CLink *, CLink **root, void *data);
-void CLink_add_rear(CLink *, CLink **root, void *data);
-void CLink_back(CLink *);
-void CLink_forward(CLink *);
-#define CLink_get(l) ((l) ? (l)->data : NULL)
-#define CLink_next(l) ((l) ? (l)->next : NULL)
-#define CLink_prev(l) ((l) ? (l)->prev : NULL)
-void CLink_remove(CLink *);
-void CNamed_free(CNamed **root, CCallback cleanupFunc);
-#define CNamed_get(r, n, s) CNamed_get_full(__func__, r, n, s)
-void *CNamed_get_full(const char *func, CNamed **root,
-                      const char *name, int size);
 #define C_new(p) (*(p) = C_calloc(sizeof (**(p))))
 #define C_one(s) memset(s, -1, sizeof (*(s)))
 #define C_one_buf(s) memset(s, -1, sizeof (s))
 #define C_zero(s) memset(s, 0, sizeof (*(s)))
 #define C_zero_buf(s) memset(s, 0, sizeof (s))
+
+/* CNamed.c */
+void CNamed_free(CNamed *);
+void CNamed_freeAll(CNamed **root);
+#define CNamed_alloc(r, n, s, c, o) CNamed_alloc_full(__func__, r, n, s, c, o)
+void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
+                        int size, CCallback cleanupFunc, CNamedPolicy);
+void *CNamed_get(CNamed *root, const char *name);
 
 /* c_os_posix.c */
 const char *C_appDir(void);

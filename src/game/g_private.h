@@ -52,13 +52,23 @@ PEntity *G_spawn(const char *className, const GSpawnParams *);
 
 extern CNamed *g_classRoot;
 
+/* GBox.c */
+struct GBox;
+struct GBoxClass;
+void GBox_parseClass(FILE *file, const char *className);
+struct GBox *GBox_spawn(struct GBoxClass *, const GSpawnParams *);
+
+/* GFountain.c */
+struct GFountain;
+struct GFountainClass;
+void GFountain_parseClass(FILE *, const char *className);
+struct GFountain *GFountain_spawn(struct GFountainClass *,
+                                  const GSpawnParams *);
+
 /* g_input.c */
 extern CVec g_mouse;
 extern int g_key, g_button;
 extern bool g_shift, g_alt, g_ctrl;
-
-/* g_map.c */
-void G_loadMap(const char *filename, CVec offset);
 
 /* g_menu.c */
 bool G_dispatch_menu(GEvent);

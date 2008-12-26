@@ -106,7 +106,7 @@ bool G_dispatch_menu(GEvent event)
                 R_drawRect(CVec(0, MENU_Y), -0.5f,
                            CVec(r_widthScaled, MENU_HEIGHT),
                            CColor(0, 0, 0, 0), CColor(0.1f, 0.1f, 0.1f,
-                                                      menuBgFade * 0.9f));
+                                                      menuBgFade * 0.6f));
                 RMenu_update(&menuMain);
                 return TRUE;
         }

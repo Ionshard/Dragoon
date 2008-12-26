@@ -77,7 +77,7 @@ void P_cleanupEntities(void)
 }
 
 /******************************************************************************\
- Change what entities this entity impacts with.
+ Change what entities will impact this entity.
 \******************************************************************************/
 void PEntity_impact(PEntity *entity, PImpactType type)
 {

@@ -20,6 +20,8 @@ static CNamed *textureRoot;
 void RTexture_cleanup(RTexture *texture)
 {
         R_freeSurface(texture->surface);
+        if (texture->glName)
+                glDeleteTextures(1, &texture->glName);
 }
 
 /******************************************************************************\
@@ -27,7 +29,7 @@ void RTexture_cleanup(RTexture *texture)
 \******************************************************************************/
 void R_cleanupTextures(void)
 {
-        CNamed_free(&textureRoot, (CCallback)RTexture_cleanup);
+        CNamed_freeAll(&textureRoot);
 }
 
 /******************************************************************************\
@@ -40,6 +42,10 @@ void RTexture_upload(RTexture *pt)
         SDL_Rect rect;
         SDL_Surface *pow2Surface;
         CVec realSize;
+
+        /* Texture has no surface data */
+        if (!pt->surface)
+                return;
 
         /* Scale this texture onto a larger power-of-two surface */
         if (pt->upScale) {
@@ -84,7 +90,8 @@ RTexture *RTexture_load(const char *filename)
 {
         RTexture *texture;
 
-        texture = CNamed_get(&textureRoot, filename, sizeof (RTexture));
+        texture = CNamed_alloc(&textureRoot, filename, sizeof (RTexture),
+                               (CCallback)RTexture_cleanup, CNP_RETURN);
         if (texture->surface)
                 return texture;
         texture->surface = R_loadSurface(filename);

@@ -13,8 +13,8 @@
 #include "r_private.h"
 
 /* Screen mode parameters */
-bool r_fullscreen = FALSE;
 int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale;
+bool r_clear, r_fullscreen;
 
 /* Keep track of the number of faces rendered per frame */
 CCount r_countFaces, r_countLines;
@@ -127,7 +127,12 @@ void R_initGl(void)
 \******************************************************************************/
 void R_begin(void)
 {
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        int clearFlags;
+
+        clearFlags = GL_DEPTH_BUFFER_BIT;
+        if (r_clear)
+                clearFlags |= GL_COLOR_BUFFER_BIT;
+        glClear(clearFlags);
 }
 
 /******************************************************************************\

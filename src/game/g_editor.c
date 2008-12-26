@@ -41,6 +41,9 @@ void G_initEditor(void)
 
         /* Pause physics */
         p_speed = 0.f;
+
+        /* Clear the screen */
+        r_clear = TRUE;
 }
 
 /******************************************************************************\
@@ -48,7 +51,8 @@ void G_initEditor(void)
 \******************************************************************************/
 static void pickEntity(void)
 {
-        PEntity *ent;
+        PEntity *ents[64];
+        int len;
 
         if (editEntity) {
                 editEntity = NULL;
@@ -56,11 +60,11 @@ static void pickEntity(void)
                 editSizing = FALSE;
                 return;
         }
-        if (!P_entsInBox_buf(mouseWorld, CVec_zero(), PIT_ALL, &ent))
+        if (!(len = P_entsInBox_buf(mouseWorld, CVec_one(), PIT_ALL, ents)))
                 return;
-        editEntity = ent;
-        editClass = ent->entityClass;
-        editOffset = CVec_sub(ent->origin, mouseWorld);
+        editEntity = ents[len - 1];
+        editClass = editEntity->entityClass;
+        editOffset = CVec_sub(editEntity->origin, mouseWorld);
 }
 
 /******************************************************************************\
@@ -114,18 +118,14 @@ static void selectEntity(int key)
 \******************************************************************************/
 static void deleteEntity(void)
 {
-        PEntity *ents[64];
-        int len;
-
-        if (editEntity) {
-                PEntity_kill(editEntity);
-                editEntity = NULL;
-                editClass = NULL;
-                return;
+        if (!editEntity) {
+                pickEntity();
+                if (!editEntity)
+                        return;
         }
-        if (!(len = P_entsInBox_buf(mouseWorld, CVec_zero(), PIT_ALL, ents)))
-                return;
-        PEntity_kill(ents[len - 1]);
+        PEntity_kill(editEntity);
+        editEntity = NULL;
+        editClass = NULL;
 }
 
 /******************************************************************************\
@@ -135,9 +135,13 @@ static void resizeEntity(void)
 {
         if (!editEntity)
                 return;
-        if (editSizing)
+        if (editSizing) {
                 editEntity->size = CVec_sub(mouseWorld, editEntity->origin);
-        else
+                if (editEntity->size.x < 1)
+                        editEntity->size.x = 1;
+                if (editEntity->size.y < 1)
+                        editEntity->size.y = 1;
+        } else
                 editEntity->origin = CVec_add(editOffset, mouseWorld);
 }
 

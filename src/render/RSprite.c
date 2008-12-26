@@ -19,7 +19,7 @@ static CNamed *dataRoot;
 \******************************************************************************/
 void R_cleanupSprites(void)
 {
-        CNamed_free(&dataRoot, NULL);
+        CNamed_freeAll(&dataRoot);
 }
 
 /******************************************************************************\
@@ -41,10 +41,11 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
 
                 /* Modulation color */
                 else if (!strcasecmp(token, "color") && C_openBrace(file)) {
-                        data->modulate.r = C_token_float(file);
-                        data->modulate.g = C_token_float(file);
-                        data->modulate.b = C_token_float(file);
-                        data->modulate.a = C_token_float(file);
+                        data->modulate.r = C_token_float(file) / 255.f;
+                        data->modulate.g = C_token_float(file) / 255.f;
+                        data->modulate.b = C_token_float(file) / 255.f;
+                        data->modulate.a = (token = C_token(file))[0] ?
+                                           atof(token) / 255.f : 1.f;
                         C_closeBrace(file);
                 }
 
@@ -98,12 +99,16 @@ void R_parseSpriteCfg(const char *filename)
                 token = C_token(file);
                 if (!token[0])
                         continue;
-                data = CNamed_get(&dataRoot, token, sizeof (RSpriteData));
+                data = CNamed_alloc(&dataRoot, token,
+                                    sizeof (RSpriteData), NULL, FALSE);
 
                 /* Parse properties */
                 if (!C_openBrace(file))
                         continue;
-                parseSpriteSection(file, data);
+                if (data)
+                        parseSpriteSection(file, data);
+                else
+                        C_warning("Sprite '%s' already defined", token);
                 C_closeBrace(file);
         }
         fclose(file);
@@ -116,7 +121,7 @@ CVec R_spriteSize(const char *name)
 {
         RSpriteData *data;
 
-        if (!(data = CNamed_get(&dataRoot, name, 0)))
+        if (!(data = CNamed_get(dataRoot, name)))
                 return CVec_zero();
         return data->boxSize;
 }
@@ -130,7 +135,7 @@ bool RSprite_init(RSprite *sprite, const char *name)
         RSpriteData *data;
 
         C_zero(sprite);
-        if (name && name[0] && !(data = CNamed_get(&dataRoot, name, 0))) {
+        if (name && name[0] && !(data = CNamed_get(dataRoot, name))) {
                 C_warning("Sprite '%s' not loaded", name);
                 return FALSE;
         }

@@ -24,6 +24,7 @@ void G_dispatch(const SDL_Event *);
 void G_update(void);
 
 /* g_map.c */
+void G_loadMap(const char *filename, CVec offset);
 void G_saveMap(const char *filename);
 
 /* g_menu.c */

@@ -70,7 +70,8 @@ void G_saveMap(const char *filename)
         for (link = p_linkAll; link; link = CLink_next(link)) {
                 entity = CLink_get(link);
                 C_assert(entity);
-                entityClass = (GEntityClass *)entity->entityClass;
+                if (!(entityClass = (GEntityClass *)entity->entityClass))
+                        continue;
                 params.origin = entity->origin;
                 params.size = entity->size;
                 C_fwrite(file, entityClass->named.name,
