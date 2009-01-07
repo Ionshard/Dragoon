@@ -14,8 +14,8 @@
 
 /* Player movement parameters */
 #define JUMP_V -100
-#define GROUND_A 100
-#define AIR_MOVE 1
+#define GROUND_A 500
+#define AIR_MOVE 0.2
 
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, cursor;
@@ -106,7 +106,8 @@ void G_spawnPlayer(CVec origin)
         playerEntity.origin = origin;
         playerEntity.size = CVec(12, 32);
         playerEntity.mass = 1;
-        playerEntity.friction = 0.;
+        playerEntity.friction = 5;
+        playerEntity.drag = 0;
         playerEntity.eventFunc = (PEventFunc)playerEvent;
         playerEntity.impactOther = PIT_ENTITY;
         playerEntity.manualUpdate = TRUE;

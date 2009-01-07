@@ -278,6 +278,71 @@ static bool PEntity_stepOver(PEntity *entity, PEntity *other)
 }
 
 /******************************************************************************\
+ Clip acceleration vector so that the entity does not accelerate against
+ ground and walls. Will also set ground entity properties.
+\******************************************************************************/
+static void PEntity_clipAccel(PEntity *entity)
+{
+        CLink *link;
+
+        /* Impact class */
+        link = p_linkEntity;
+        if (entity->impactOther == PIT_WORLD)
+                link = p_linkWorld;
+        if (entity->impactOther == PIT_ALL)
+                link = p_linkAll;
+
+        /* Iterate over collision class linked list */
+        entity->ground = NULL;
+        for (; link; link = CLink_next(link)) {
+                PEntity *other;
+
+                if ((other = CLink_get(link)) == entity)
+                        continue;
+                C_assert(other);
+
+                /* Horizontal */
+                if (entity->accel.x &&
+                    other->origin.y + entity->stepSize <
+                    entity->origin.y + entity->size.y &&
+                    other->origin.y + other->size.y > entity->origin.y) {
+
+                        /* Clip left */
+                        if (entity->accel.x < 0) {
+                                if (fabsf(entity->origin.x - other->origin.x -
+                                          other->size.x) <= GROUND_DIST)
+                                        entity->accel.x = 0;
+                        }
+
+                        /* Clip right */
+                        else if (fabsf(entity->origin.x + entity->size.x -
+                                       other->origin.x) <= GROUND_DIST)
+                                entity->accel.x = 0;
+                }
+
+                /* Vertical */
+                if (!entity->accel.y ||
+                    other->origin.x >= entity->origin.x + entity->size.x ||
+                    other->origin.x + other->size.x <= entity->origin.x)
+                        continue;
+
+                /* Clip up */
+                if (entity->accel.y < 0) {
+                        if (fabsf(entity->origin.y - other->origin.y -
+                                  other->size.y) <= GROUND_DIST)
+                                entity->accel.y = 0;
+                }
+
+                /* Clip down (ground) */
+                else if (fabsf(entity->origin.y + entity->size.y -
+                               other->origin.y) <= GROUND_DIST) {
+                        entity->accel.y = 0;
+                        entity->ground = other;
+                }
+        }
+}
+
+/******************************************************************************\
  Update physics for an entity.
 \******************************************************************************/
 static void PEntity_physics(PEntity *entity, float delT)
@@ -301,14 +366,11 @@ static void PEntity_physics(PEntity *entity, float delT)
         }
         entity->lagSec = 0.f;
 
-        /* Update ground entity */
-        to = CVec_add(entity->origin, CVec(0.f, GROUND_DIST));
-        trace = PEntity_trace(entity, to);
-        entity->ground = trace.impactEntity;
-
         /* Add gravity */
-        if (!entity->ground || entity->velocity.y < 0)
-                entity->accel.y += p_gravity;
+        entity->accel.y += p_gravity;
+
+        /* Clip acceleration to make sure we move this frame */
+        PEntity_clipAccel(entity);
 
         /* Add acceleration for the frame */
         lastV = entity->velocity;
@@ -420,17 +482,11 @@ static void PEntity_physics(PEntity *entity, float delT)
 \******************************************************************************/
 void PEntity_update(PEntity *entity)
 {
-        int i;
-
         /* Update entity physics */
         PEntity_physics(entity, p_frameSec);
 
         /* Acceleration vector is reset every frame */
         entity->accel = CVec_zero();
-
-        /* Try to "catch up" the entity if it is lagging */
-        for (i = 0; i < 5 && entity->lagSec > 0; i++)
-                PEntity_physics(entity, 0);
 
         /* Entity might have died */
         if (entity->dead)

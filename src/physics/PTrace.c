@@ -112,9 +112,6 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType,
                                 continue;
                 }
 
-                /* We have a hit */
-                trace.impactEntity = other;
-
                 /* Non-diagonal case */
                 if (!diagonal)
                         side = to.y == from.y ? to.x < from.x :
@@ -146,25 +143,41 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType,
                 default:
                         C_assert(0);
 
-                case 0: /* Left */
+                case 0: /* Numerical error sanity check */
+                        if (other->origin.x < from.x + size.x)
+                                continue;
+
+                        /* Left */
                         dist = (other->origin.x - size.x - from.x) /
                                (to.x - from.x);
                         trace.dir = CVec(1.f, 0.f);
                         break;
 
-                case 1: /* Right */
+                case 1: /* Numerical error sanity check */
+                        if (other->origin.x + other->size.x > from.x)
+                                continue;
+
+                        /* Right */
                         dist = (from.x - other->origin.x - other->size.x) /
                                (from.x - to.x);
                         trace.dir = CVec(-1.f, 0.f);
                         break;
 
-                case 2: /* Bottom */
+                case 2: /* Numerical error sanity check */
+                        if (other->origin.y + other->size.y > from.y)
+                                continue;
+
+                        /* Bottom */
                         dist = (from.y - other->origin.y - other->size.y) /
                                (from.y - to.y);
                         trace.dir = CVec(0.f, -1.f);
                         break;
 
-                case 3: /* Top */
+                case 3: /* Numerical error sanity check */
+                        if (other->origin.y < from.y + size.y)
+                                continue;
+
+                        /* Top */
                         dist = (other->origin.y - size.y - from.y) /
                                (to.y - from.y);
                         trace.dir = CVec(0.f, 1.f);
@@ -179,6 +192,9 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType,
 
                 trace.prop *= dist;
                 to = CVec_lerp(from, dist, to);
+
+                /* We have a hit */
+                trace.impactEntity = other;
 
                 /* Done tracing */
                 if (trace.prop <= 0)
