@@ -16,6 +16,15 @@
 CNamed *g_classRoot;
 
 /******************************************************************************\
+ Initialize an entity class structure.
+\******************************************************************************/
+void GEntityClass_init(GEntityClass *entity)
+{
+        entity->z = G_Z_MID;
+        entity->editorKey = '`';
+}
+
+/******************************************************************************\
  Parse a token/value pair from a generic class definition. Returns TRUE if the
  token was valid or FALSE if it is not a generic class token.
 \******************************************************************************/
@@ -39,6 +48,21 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
         /* Key the entity is bound to in the editor */
         else if (!strcasecmp(token, "editor"))
                 entity->editorKey = C_token(file)[0];
+
+        /* Entity layer z */
+        else if (!strcasecmp(token, "z")) {
+                token = C_token(file);
+                if (!strcasecmp(token, "fore"))
+                        entity->z = G_Z_FORE;
+                else if (!strcasecmp(token, "mid"))
+                        entity->z = G_Z_MID;
+                else if (!strcasecmp(token, "rear"))
+                        entity->z = G_Z_REAR;
+                else if (!strcasecmp(token, "back"))
+                        entity->z = G_Z_BACK;
+                else
+                        entity->z = atof(token);
+        }
 
         /* Unrecognized */
         else

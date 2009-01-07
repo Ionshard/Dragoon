@@ -50,9 +50,9 @@ typedef struct PEntity {
         PImpactType impactOther;
         CLink linkAll, linkWorld, linkEntity;
         CVec origin, size, velocity, accel;
-        float mass, friction, drag, elasticity, lagSec;
+        float mass, friction, drag, elasticity, lagSec, stepSize;
         int frameSkip;
-        bool dead;
+        bool dead, manualUpdate;
         void *data, *entityClass;
 } PEntity;
 
@@ -84,6 +84,7 @@ void PEntity_impact(PEntity *, PImpactType);
 void PEntity_kill(PEntity *);
 void PEntity_spawn(PEntity *, const char *className);
 PTrace PEntity_trace(const PEntity *, CVec to);
+void PEntity_update(PEntity *);
 void P_cleanupEntities(void);
 void P_updateEntities(void);
 

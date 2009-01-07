@@ -13,7 +13,7 @@
 #include "g_private.h"
 
 /* Speed of camera movement */
-#define CAM_SPEED 100
+#define CAM_SPEED -100
 
 /* Filename of map being edited */
 char g_edit[C_NAME_MAX];
@@ -44,6 +44,9 @@ void G_initEditor(void)
 
         /* Clear the screen */
         r_clear = TRUE;
+
+        /* Show cursor */
+        SDL_ShowCursor(SDL_ENABLE);
 }
 
 /******************************************************************************\
@@ -51,8 +54,9 @@ void G_initEditor(void)
 \******************************************************************************/
 static void pickEntity(void)
 {
+        GEntityClass *class_i, *class_nearest;
         PEntity *ents[64];
-        int len;
+        int i, len, nearest;
 
         if (editEntity) {
                 editEntity = NULL;
@@ -62,22 +66,32 @@ static void pickEntity(void)
         }
         if (!(len = P_entsInBox_buf(mouseWorld, CVec_one(), PIT_ALL, ents)))
                 return;
-        editEntity = ents[len - 1];
-        editClass = editEntity->entityClass;
+
+        /* Find the nearest entity */
+        class_nearest = ents[0]->entityClass;
+        for (nearest = 0, i = 1; i < len; i++) {
+                class_i = ents[i]->entityClass;
+                if (!class_i ||
+                    (class_nearest && class_i->z < class_nearest->z))
+                        continue;
+                class_nearest = class_i;
+                nearest = i;
+        }
+        editEntity = ents[nearest];
+        editClass = class_nearest;
         editOffset = CVec_sub(editEntity->origin, mouseWorld);
 }
 
 /******************************************************************************\
  Select a new entity to place.
 \******************************************************************************/
-static void selectEntity(int key)
+static bool selectEntity(int key)
 {
         GSpawnParams params;
         GEntityClass *entClass;
 
         PEntity_kill(editEntity);
         editEntity = NULL;
-        editOffset = CVec_zero();
         editSizing = FALSE;
 
         /* Select the next entity class */
@@ -104,13 +118,16 @@ static void selectEntity(int key)
         /* Class not found */
         if (!entClass) {
                 editClass = NULL;
-                return;
+                return FALSE;
         }
 
         params.origin = mouseWorld;
         params.size = entClass->size;
         editClass = (editEntity = G_spawn(entClass->named.name, &params)) ?
                     entClass : NULL;
+        editOffset = CVec_divf(editEntity->size, -2);
+        editEntity->origin = CVec_add(editEntity->origin, editOffset);
+        return TRUE;
 }
 
 /******************************************************************************\
@@ -155,19 +172,15 @@ bool G_dispatch_editor(GEvent event)
 
         /* Select an entity class to place using keys */
         if (event == GE_KEY_DOWN) {
+                if (!selectEntity(g_key))
+                        G_controlDirection(event, &camSpeed, CAM_SPEED);
+                return TRUE;
+        }
 
-                /* Move camera */
-                if (g_key == SDLK_LEFT && camSpeed.x <= 0)
-                        camSpeed.x += CAM_SPEED;
-                else if (g_key == SDLK_RIGHT && camSpeed.x >= 0)
-                        camSpeed.x -= CAM_SPEED;
-                else if (g_key == SDLK_UP && camSpeed.y <= 0)
-                        camSpeed.y += CAM_SPEED;
-                else if (g_key == SDLK_DOWN && camSpeed.y >= 0)
-                        camSpeed.y -= CAM_SPEED;
-
-                else
-                        selectEntity(g_key);
+        /* Stop moving camera */
+        else if (event == GE_KEY_UP) {
+                if (g_key < 0x32 || g_key > 0x7f)
+                        G_controlDirection(event, &camSpeed, CAM_SPEED);
                 return TRUE;
         }
 
@@ -203,18 +216,6 @@ bool G_dispatch_editor(GEvent event)
                         if (g_button == SDL_BUTTON_WHEELDOWN)
                                 CLink_forward(&editEntity->linkAll);
                 }
-        }
-
-        /* Stop moving camera */
-        else if (event == GE_KEY_UP) {
-                if (g_key == SDLK_LEFT && camSpeed.x >= 0)
-                        camSpeed.x -= CAM_SPEED;
-                else if (g_key == SDLK_RIGHT && camSpeed.x <= 0)
-                        camSpeed.x += CAM_SPEED;
-                else if (g_key == SDLK_UP && camSpeed.y >= 0)
-                        camSpeed.y -= CAM_SPEED;
-                else if (g_key == SDLK_DOWN && camSpeed.y <= 0)
-                        camSpeed.y += CAM_SPEED;
         }
 
         /* Update camera */

@@ -24,7 +24,7 @@ void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod)
                 return;
 
         /* Unbind texture */
-        RTexture_select(NULL);
+        RTexture_deselect();
 
         /* Setup quad */
         verts[0].co = origin;

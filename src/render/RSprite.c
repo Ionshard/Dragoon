@@ -12,6 +12,7 @@
 
 #include "r_private.h"
 
+/* Sprite data named linked list */
 static CNamed *dataRoot;
 
 /******************************************************************************\
@@ -52,6 +53,14 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
                 /* Additive blending */
                 else if (!strcasecmp(token, "additive"))
                         data->additive = TRUE;
+
+                /* Flip */
+                else if (!strcasecmp(token, "flip"))
+                        data->flip = TRUE;
+
+                /* Mirror */
+                else if (!strcasecmp(token, "mirror"))
+                        data->mirror = TRUE;
 
                 /* Bounding box */
                 else if (!strcasecmp(token, "box") && C_openBrace(file)) {
@@ -153,8 +162,9 @@ void RSprite_draw(const RSprite *sprite)
         const RSpriteData *data;
         RVertex verts[4];
         CColor modulate;
-        CVec half, surfaceSize;
+        CVec surfaceSize;
         const unsigned short indices[] = { 0, 1, 2, 3, 0 };
+        bool smooth, flip, mirror;
 
         if (!sprite || !(data = sprite->data) || sprite->z > 0.f ||
             sprite->modulate.a <= 0.f)
@@ -171,18 +181,15 @@ void RSprite_draw(const RSprite *sprite)
         glPushMatrix();
         glTranslatef(sprite->origin.x + sprite->size.x / 2,
                      sprite->origin.y + sprite->size.y / 2, sprite->z);
-        if (sprite->angle) {
+        if ((smooth = sprite->angle != 0.f))
                 glRotatef(C_radToDeg(sprite->angle), 0.0, 0.0, 1.0);
-
-                /* Make sure that any sprite we rotate has been upscaled */
-                if (data->texture && !data->texture->upScale) {
-                        data->texture->upScale = TRUE;
-                        RTexture_upload(data->texture);
-                }
-        }
+        flip = sprite->flip ^ sprite->data->flip;
+        mirror = sprite->mirror ^ sprite->data->mirror;
+        glScalef(mirror ? -sprite->size.x : sprite->size.x,
+                 flip ? -sprite->size.y : sprite->size.y, 0);
 
         /* Bind texture */
-        RTexture_select(data->texture);
+        RTexture_select(data->texture, smooth, data->additive);
 
         /* Additive blending */
         if (data->additive) {
@@ -201,20 +208,19 @@ void RSprite_draw(const RSprite *sprite)
         glColor4f(modulate.r, modulate.g, modulate.b, modulate.a);
 
         /* Render textured quad */
-        half = CVec_divf(sprite->size, 2.f);
         surfaceSize = RTexture_size(data->texture);
-        verts[0].co = CVec_xy(-half.x, -half.y);
+        verts[0].co = CVec_xy(-0.5f, -0.5f);
         verts[0].uv = CVec_div(data->boxOrigin, surfaceSize);
         verts[0].z = 0.f;
-        verts[2].co = CVec_xy(half.x, half.y);
+        verts[2].co = CVec_xy(0.5f, 0.5f);
         verts[2].uv = CVec_div(CVec_add(data->boxOrigin, data->boxSize),
                                surfaceSize);
         verts[2].z = 0.f;
-        verts[1].co = CVec_xy(-half.x, half.y);
+        verts[1].co = CVec_xy(-0.5f, 0.5f);
         verts[1].uv.x = verts[0].uv.x;
         verts[1].uv.y = verts[2].uv.y;
         verts[1].z = 0.f;
-        verts[3].co = CVec_xy(half.x, -half.y);
+        verts[3].co = CVec_xy(0.5f, -0.5f);
         verts[3].uv.x = verts[2].uv.x;
         verts[3].uv.y = verts[0].uv.y;
         verts[3].z = 0.f;
@@ -226,5 +232,16 @@ void RSprite_draw(const RSprite *sprite)
         /* Cleanup */
         glPopMatrix();
         R_checkErrors();
+}
+
+/******************************************************************************\
+ Center a sprite on a box.
+\******************************************************************************/
+void RSprite_center(RSprite *sprite, CVec origin, CVec size)
+{
+        if (!sprite || !sprite->data)
+                return;
+        sprite->origin = CVec_sub(CVec_add(origin, CVec_divf(size, 2)),
+                                  sprite->data->center);
 }
 

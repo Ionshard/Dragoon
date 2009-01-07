@@ -15,6 +15,13 @@
 #include "../physics/p_public.h"
 #include "g_public.h"
 
+/* Z values for game layers */
+#define G_Z_HUD   0.00f
+#define G_Z_FORE -0.25f
+#define G_Z_MID  -0.50f
+#define G_Z_REAR -0.75f
+#define G_Z_BACK -1.00f
+
 /* Input events, extends physics events */
 typedef enum {
         GE_UPDATE = PE_UPDATE,
@@ -35,6 +42,7 @@ typedef struct {
         CNamed named;
         GSpawnFunc spawnFunc;
         CVec size;
+        float z;
         char editorKey, spriteName[C_NAME_MAX];
 } GEntityClass;
 
@@ -46,7 +54,8 @@ typedef struct GSpawnParams {
 /* g_editor.c */
 bool G_dispatch_editor(GEvent);
 
-/* GEntity.c */
+/* g_entity.c */
+void GEntityClass_init(GEntityClass *);
 bool GEntityClass_parseToken(GEntityClass *, FILE *, const char *token);
 PEntity *G_spawn(const char *className, const GSpawnParams *);
 
@@ -66,10 +75,21 @@ struct GFountain *GFountain_spawn(struct GFountainClass *,
                                   const GSpawnParams *);
 
 /* g_input.c */
+bool G_controlDirection(GEvent, CVec *, float speed);
+
 extern CVec g_mouse;
 extern int g_key, g_button;
 extern bool g_shift, g_alt, g_ctrl;
 
 /* g_menu.c */
 bool G_dispatch_menu(GEvent);
+void G_hideMenu(void);
+
+extern bool g_limbo;
+
+/* g_player.c */
+bool G_dispatch_player(GEvent);
+void G_drawPlayer(void);
+void G_spawnPlayer(CVec origin);
+void G_updatePlayer(void);
 

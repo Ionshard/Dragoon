@@ -125,14 +125,12 @@ void *C_realloc_full(const char *func, void *ptr, size_t size)
 /******************************************************************************\
  Allocate zero'd memory.
 \******************************************************************************/
-#if CHECKED
 void *C_recalloc_full(const char *func, void *ptr, size_t size)
 {
         ptr = C_realloc_full(func, ptr, size);
         memset(ptr, 0, size);
         return ptr;
 }
-#endif
 
 /******************************************************************************\
  Checks if a no-mans-land region has been corrupted.

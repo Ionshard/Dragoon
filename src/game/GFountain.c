@@ -77,7 +77,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         fountainClass = fountain->entity.entityClass;
         C_assert(fountainClass);
         RSprite_init(&particle->sprite, fountainClass->entity.spriteName);
-        particle->sprite.z = -1;
+        particle->sprite.z = fountainClass->entity.z;
         particle->entity.eventFunc = (PEventFunc)GParticle_eventFunc;
         particle->entity.origin = fountain->entity.origin;
         particle->entity.size = fountain->entity.size;
@@ -104,7 +104,7 @@ GFountain *GFountain_spawn(GFountainClass *fountainClass,
 
         C_new(&fountain);
         RSprite_init(&fountain->sprite, fountainClass->entity.spriteName);
-        fountain->sprite.z = -1;
+        fountain->sprite.z = fountainClass->entity.z;
         fountain->entity.eventFunc = (PEventFunc)GFountain_eventFunc;
         fountain->entity.origin = params->origin;
         fountain->entity.size = params->size;
@@ -128,6 +128,7 @@ void GFountain_parseClass(FILE *file, const char *className)
                 C_warning("Class '%s' already defined", className);
                 return;
         }
+        GEntityClass_init(&fountainClass->entity);
         fountainClass->entity.spawnFunc = (GSpawnFunc)GFountain_spawn;
 
         /* Sprite defaults to class name */

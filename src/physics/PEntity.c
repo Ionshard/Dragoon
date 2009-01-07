@@ -244,20 +244,54 @@ static void PEntity_unstick(PEntity *entity, const PEntity *other)
 }
 
 /******************************************************************************\
+ Try to step over an entity, returns TRUE if succeeded.
+\******************************************************************************/
+static bool PEntity_stepOver(PEntity *entity, PEntity *other)
+{
+        PTrace trace;
+        CVec to;
+        float stepHeight;
+
+        if (!entity->velocity.x)
+                return FALSE;
+
+        /* Check the step height */
+        stepHeight = entity->origin.y + entity->size.y - other->origin.y;
+        if (stepHeight <= 0 || stepHeight > entity->stepSize)
+                return FALSE;
+
+        /* Trace to the new position */
+        to = CVec(entity->origin.x, entity->origin.y - stepHeight);
+        trace = PEntity_trace(entity, to);
+        if (trace.prop < 1.f)
+                return FALSE;
+        entity->origin = to;
+
+        /* Trace forward a little bit */
+        to.x += entity->velocity.x > 0 ? GROUND_DIST : -GROUND_DIST;
+        trace = PEntity_trace(entity, to);
+        if (trace.prop < 1.f)
+                return FALSE;
+
+        entity->origin = to;
+        return TRUE;
+}
+
+/******************************************************************************\
  Update physics for an entity.
 \******************************************************************************/
-static void PEntity_physics(PEntity *entity)
+static void PEntity_physics(PEntity *entity, float delT)
 {
         PTrace trace;
         CVec from, to, lastV, delS, avgV;
-        float prop, delT;
+        float prop;
 
         /* Fixed entity, doesn't move */
-        if (!entity->mass)
+        if (!entity->mass || entity->dead)
                 return;
 
         /* Time traveled since last frame */
-        if ((delT = entity->lagSec + p_frameSec) <= 0)
+        if ((delT += entity->lagSec) <= 0)
                 return;
 
         /* Low priority entities must rack up a large deficit before moving */
@@ -370,11 +404,41 @@ static void PEntity_physics(PEntity *entity)
         /* Get the corrected velocity */
         entity->velocity = CVec_add(lastV, CVec_scalef(entity->accel, delT));
 
+        /* Try to avoid impact by stepping over this entity */
+        if (PEntity_stepOver(entity, trace.impactEntity))
+                return;
+
         /* Handle impact physics */
         if (trace.impactEntity->mass)
                 PEntity_bounceMobile(entity, trace.impactEntity, trace.dir);
         else
                 PEntity_bounceFixture(entity, trace.impactEntity, trace.dir);
+}
+
+/******************************************************************************\
+ Update an entity.
+\******************************************************************************/
+void PEntity_update(PEntity *entity)
+{
+        int i;
+
+        /* Update entity physics */
+        PEntity_physics(entity, p_frameSec);
+
+        /* Acceleration vector is reset every frame */
+        entity->accel = CVec_zero();
+
+        /* Try to "catch up" the entity if it is lagging */
+        for (i = 0; i < 5 && entity->lagSec > 0; i++)
+                PEntity_physics(entity, 0);
+
+        /* Entity might have died */
+        if (entity->dead)
+                return;
+
+        /* During updates entities draw themselves and can change their
+           parameters including setting a new accel vector */
+        PEntity_event(entity, PE_UPDATE, NULL);
 }
 
 /******************************************************************************\
@@ -392,25 +456,14 @@ void P_updateEntities(void)
         p_frameSec = p_frameMsec * 0.001f;
         p_timeMsec += p_frameMsec;
 
-        /* Update every moving entity's physics */
+        /* Update every entity */
         for (link = p_linkAll; link; link = CLink_next(link)) {
                 entity = CLink_get(link);
-
-                /* Count this entity */
                 if (CHECKED)
                         CCount_add(&p_countEntities, 1);
-
-                /* Update entity physics (which can kill it) */
-                PEntity_physics(entity);
-                if (entity->dead)
+                if (entity->manualUpdate)
                         continue;
-
-                /* Acceleration vector is reset every frame */
-                entity->accel = CVec_zero();
-
-                /* During updates entities draw themselves and can change their
-                   parameters including setting a new accel vector */
-                PEntity_event(entity, PE_UPDATE, NULL);
+                PEntity_update(entity);
         }
 
         /* Remove any entities that died this frame */

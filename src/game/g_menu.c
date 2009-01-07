@@ -18,6 +18,9 @@
 #define MENU_HEIGHT 80
 #define MENU_MARGIN 16
 
+/* TRUE if the game is in limbo menu */
+bool g_limbo;
+
 static RMenu menuMain, *menuShown;
 static float menuBgFade;
 
@@ -30,23 +33,38 @@ static void onQuit(void)
 }
 
 /******************************************************************************\
+ New game callback.
+\******************************************************************************/
+static void onNewGame(void)
+{
+        g_limbo = FALSE;
+        G_hideMenu();
+        P_cleanupEntities();
+        G_loadMap("map/test", CVec_zero());
+        G_spawnPlayer(CVec_zero());
+}
+
+/******************************************************************************\
  Initialize the main menu.
 \******************************************************************************/
 void G_initMenu(void)
 {
         RMenuEntry *entry;
 
+        g_limbo = TRUE;
+
         /* Main menu */
         RMenu_init(&menuMain);
         menuMain.origin = CVec(r_widthScaled / 2 - MENU_WIDTH / 2,
                                MENU_Y + MENU_HEIGHT / 2);
         menuMain.size.x = MENU_WIDTH;
-        RMenu_add(&menuMain, RMenuEntry_new("New Game", NULL), 0);
+        RMenu_add(&menuMain,
+                  RMenuEntry_new("New Game", (CCallback)onNewGame), 0);
         entry = RMenuEntry_new("Continue", NULL);
         entry->enabled = FALSE;
         RMenu_add(&menuMain, entry, 0);
         RMenu_add(&menuMain, RMenuEntry_new("Options", NULL), 0);
-        RMenu_add(&menuMain, RMenuEntry_new("Quit", (CCallback)onQuit), 8);
+        RMenu_add(&menuMain, RMenuEntry_new("Quit", (CCallback)onQuit), 0);
 }
 
 /******************************************************************************\
@@ -62,6 +80,8 @@ void G_cleanupMenu(void)
 \******************************************************************************/
 void G_hideMenu(void)
 {
+        if (g_limbo)
+                return;
         if (menuShown)
                 menuShown->shown = FALSE;
         menuShown = NULL;
@@ -83,32 +103,49 @@ void G_showMenu(void)
 \******************************************************************************/
 bool G_dispatch_menu(GEvent event)
 {
-        if (!menuShown)
-                return FALSE;
-
-        /* Navigate menu */
         if (event == GE_KEY_DOWN) {
-                if (g_key == SDLK_DOWN)
-                        RMenu_select(menuShown, FALSE);
-                else if (g_key == SDLK_UP)
-                        RMenu_select(menuShown, TRUE);
-                else if (g_key == SDLK_RIGHT || g_key == SDLK_RETURN)
-                        RMenu_activate(menuShown, TRUE);
-                else if (g_key == SDLK_LEFT)
-                        RMenu_activate(menuShown, FALSE);
-                return TRUE;
+                if (menuShown) {
+
+                        /* Navigate menu */
+                        if (g_key == SDLK_DOWN)
+                                RMenu_select(menuShown, FALSE);
+                        else if (g_key == SDLK_UP)
+                                RMenu_select(menuShown, TRUE);
+                        else if (g_key == SDLK_RIGHT || g_key == SDLK_RETURN)
+                                RMenu_activate(menuShown, TRUE);
+                        else if (g_key == SDLK_LEFT)
+                                RMenu_activate(menuShown, FALSE);
+
+                        /* Hide menu via key */
+                        else if (g_key == SDLK_ESCAPE ||
+                                 g_key == SDLK_BACKSPACE)
+                                G_hideMenu();
+
+                        return TRUE;
+                }
+
+                /* Show menu via key */
+                else if (g_key == SDLK_ESCAPE || g_key == SDLK_BACKSPACE) {
+                        G_showMenu();
+                        return TRUE;
+                }
         }
 
         /* Update menu */
         else if (event == GE_UPDATE) {
+
+                /* Let some time go by before showing the menu for the
+                   first time */
+                if (c_timeMsec < 1000)
+                        return FALSE;
+
                 if (!C_fade(&menuBgFade, menuShown != NULL, R_MENU_FADE))
-                        return TRUE;
+                        return FALSE;
                 R_drawRect(CVec(0, MENU_Y), -0.5f,
                            CVec(r_widthScaled, MENU_HEIGHT),
                            CColor(0, 0, 0, 0), CColor(0.1f, 0.1f, 0.1f,
                                                       menuBgFade * 0.6f));
                 RMenu_update(&menuMain);
-                return TRUE;
         }
 
         return FALSE;

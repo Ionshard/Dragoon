@@ -37,7 +37,7 @@ typedef struct RSpriteData {
         RTexture *texture;
         CColor modulate;
         CVec boxOrigin, boxSize, center;
-        bool additive;
+        bool additive, flip, mirror;
 } RSpriteData;
 
 /* r_mode.c */
@@ -66,8 +66,9 @@ extern int r_videoMem, r_videoMemMax;
 
 /* RTexture.c */
 void RTexture_cleanup(RTexture *);
+#define RTexture_deselect(t) RTexture_select(NULL, FALSE, FALSE)
 RTexture *RTexture_load(const char *filename);
-void RTexture_select(const RTexture *);
+void RTexture_select(RTexture *, bool smooth, bool additive);
 #define RTexture_size(t) \
         ((t) && (t)->surface ? R_surfaceSize((t)->surface) : CVec_zero())
 void RTexture_upload(RTexture *);

@@ -109,12 +109,25 @@ RTexture *RTexture_load(const char *filename)
  Selects (binds) a texture for rendering in OpenGL. Also sets whatever options
  are necessary to get the texture to show up properly.
 \******************************************************************************/
-void RTexture_select(const RTexture *texture)
+void RTexture_select(RTexture *texture, bool smooth, bool additive)
 {
         if (!texture) {
                 glDisable(GL_TEXTURE_2D);
                 return;
         }
+
+        /* Make sure that any texture we want to smooth has been upscaled */
+        if (smooth && texture && !texture->upScale) {
+                texture->upScale = TRUE;
+                RTexture_upload(texture);
+        }
+
+        /* Select a blending function */
+        if (additive)
+                glBlendFunc(GL_ONE, GL_ONE);
+        else
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, texture->glName);
 
@@ -125,7 +138,7 @@ void RTexture_select(const RTexture *texture)
         /* Scale filters */
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                        texture->upScale ? GL_LINEAR : GL_NEAREST);
+                        smooth ? GL_LINEAR : GL_NEAREST);
 
         /* Non-power-of-two textures are pasted onto larger textures that
            require a texture coordinate transformation */

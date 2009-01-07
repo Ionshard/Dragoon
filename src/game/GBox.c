@@ -46,7 +46,7 @@ GBox *GBox_spawn(GBoxClass *boxClass, const GSpawnParams *params)
 
         C_new(&box);
         RSprite_init(&box->sprite, boxClass->entity.spriteName);
-        box->sprite.z = -1;
+        box->sprite.z = boxClass->entity.z;
         box->entity.eventFunc = (PEventFunc)GBox_eventFunc;
         box->entity.origin = params->origin;
         box->entity.size = params->size;
@@ -69,6 +69,7 @@ void GBox_parseClass(FILE *file, const char *className)
                 C_warning("Class '%s' already defined", className);
                 return;
         }
+        GEntityClass_init(&boxClass->entity);
         boxClass->entity.spawnFunc = (GSpawnFunc)GBox_spawn;
 
         /* Sprite defaults to class name */

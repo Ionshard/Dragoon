@@ -68,7 +68,8 @@ void G_dispatch(const SDL_Event *ev)
         }
 
         /* Propagate event */
-        if (G_dispatch_editor(event) || G_dispatch_menu(event))
+        if (G_dispatch_editor(event) || G_dispatch_menu(event) ||
+            G_dispatch_player(event))
                 return;
 }
 
@@ -77,13 +78,56 @@ void G_dispatch(const SDL_Event *ev)
 \******************************************************************************/
 void G_update(void)
 {
+        G_updatePlayer();
+
         /* Should only render entities now so offset the camera */
         R_beginCam();
         P_updateEntities();
+        G_drawPlayer();
         R_endCam();
 
         /* Propagate event */
         if (G_dispatch_editor(GE_UPDATE) || G_dispatch_menu(GE_UPDATE))
                 return;
+}
+
+/******************************************************************************\
+ Convert a key code to a direction vector.
+\******************************************************************************/
+static CVec keyToDirection(int key)
+{
+        if (key == 'a' || key == 'j' || key == SDLK_LEFT)
+                return CVec(-1, 0);
+        if (key == 'd' || key == 'l' || key == SDLK_RIGHT)
+                return CVec(1, 0);
+        if (key == 'w' || key == 'i' || key == SDLK_UP)
+                return CVec(0, -1);
+        if (key == 's' || key == 'k' || key == SDLK_DOWN)
+                return CVec(0, 1);
+        return CVec_zero();
+}
+
+/******************************************************************************\
+ Keyboard direction control from keyboard events. Returns TRUE if [event]
+ is a key down/up event that was interpreted as a direction command.
+\******************************************************************************/
+bool G_controlDirection(GEvent event, CVec *vec, float speed)
+{
+        CVec dir;
+        int signSpeed;
+
+        dir = keyToDirection(g_key);
+        if (!dir.x && !dir.y)
+                return FALSE;
+        if (event == GE_KEY_UP)
+                dir = CVec_scalef(dir, -1);
+        else if (event != GE_KEY_DOWN)
+                return FALSE;
+        signSpeed = C_sign(speed);
+        if (C_sign(vec->x) != dir.x * signSpeed)
+                vec->x += dir.x * speed;
+        if (C_sign(vec->y) != dir.y * signSpeed)
+                vec->y += dir.y * speed;
+        return TRUE;
 }
 

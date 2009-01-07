@@ -139,6 +139,7 @@ void CLink_add_rear(CLink *, CLink **root, void *data);
 void CLink_back(CLink *);
 void CLink_forward(CLink *);
 #define CLink_get(l) ((l) ? (l)->data : NULL)
+#define CLink_linked(l) ((l)->root != NULL)
 #define CLink_next(l) ((l) ? (l)->next : NULL)
 #define CLink_prev(l) ((l) ? (l)->prev : NULL)
 void CLink_remove(CLink *);
@@ -158,14 +159,15 @@ void C_log(CLogLevel, const char *file, const char *fmt, ...);
 #define TODO C_log(CLL_ERROR, __func__, "Not implemented");
 
 /* c_math.c */
+#define C_degToRad(a) ((a) * C_PI / 180.f)
 #define C_fade(v, u, r) C_fade_full(v, 0, 1, u, r)
 bool C_fade_full(float *value, float from, float to, bool up, float rate);
 #define C_isPow2(n) !(n & (n - 1))
 void C_limitFloat(float *, float min, float max);
 void C_limitInt(int *, int min, int max);
 int C_nextPow2(int);
+#define C_sign(n) ((n) < 0 ? -1 : (n) > 0)
 #define C_radToDeg(a) ((a) * 180.f / C_PI)
-#define C_degToRad(a) ((a) * C_PI / 180.f)
 #define C_rand() ((float)rand() / RAND_MAX)
 int C_randDet(int);
 int C_rollDice(int num, int sides);
@@ -180,19 +182,21 @@ void C_free_full(const char *func, void *ptr);
 #define C_malloc(s) C_realloc(NULL, s)
 #define C_realloc(p, s) C_realloc_full(__func__, p, s)
 void *C_realloc_full(const char *func, void *ptr, size_t size);
-void *C_recalloc_full(const char *func, void *ptr, size_t size);
 void C_testMemCheck(int test);
 #else
 #define C_calloc(s) calloc(s, 1)
+#define C_calloc_full(f, s) calloc(s, 1)
 #define C_checkLeaks()
 #define C_free(p) free(p)
 #define C_malloc(s) malloc(s)
 #define C_realloc(a, b) realloc(a, b)
+#define C_realloc_full(f, a, b) realloc(a, b)
 #define C_testMemCheck(a)
 #endif
 #define C_new(p) (*(p) = C_calloc(sizeof (**(p))))
 #define C_one(s) memset(s, -1, sizeof (*(s)))
 #define C_one_buf(s) memset(s, -1, sizeof (s))
+void *C_recalloc_full(const char *func, void *ptr, size_t size);
 #define C_zero(s) memset(s, 0, sizeof (*(s)))
 #define C_zero_buf(s) memset(s, 0, sizeof (s))
 
