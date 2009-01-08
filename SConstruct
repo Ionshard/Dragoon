@@ -27,13 +27,9 @@ gch_builder = Builder(action = '$CC $CFLAGS $CCFLAGS $_CCCOMCOM ' +
 def path(p):
         return p
 
-col = colorizer()
-
 # Create a default environment. Have to set environment variables after
 # initialization so that SCons doesn't mess them up.
 default_env = Environment(ENV = os.environ, BUILDERS = {'GCH' : gch_builder})
-
-col.colorize(default_env)
 
 # Tells SCons to be smarter about caching dependencies
 default_env.SetOption('implicit_cache', 1)
@@ -67,10 +63,16 @@ AddEnvOption(default_env, opts, 'PREFIX', 'Installation path prefix',
              'PREFIX', '/usr/local/')
 opts.Add(BoolOption('pch', 'Use precompiled headers if possible', True))
 opts.Add(BoolOption('checked', 'Enable debug checks', False))
+opts.Add(BoolOption('color', 'Colored SCons output', True))
 opts.Add(BoolOption('dump_env', 'Dump SCons Environment contents', False))
 opts.Add(BoolOption('dump_path', 'Dump path enviornment variable', False))
 opts.Update(default_env)
 opts.Save(config_file, default_env)
+
+# Convert output spam to tidy colored lines
+if default_env['color']:
+        col = colorizer()
+        col.colorize(default_env)
 
 # Dump Environment object to debug SCons
 if default_env['dump_env']:
