@@ -6,4 +6,5 @@ dragoon
 *.gch
 *.swp
 *.html
+*.pyc
 gendoc/gendoc

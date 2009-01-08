@@ -13,6 +13,7 @@
 ################################################################################
 
 import glob, os, sys
+from colorizer import colorizer
 
 # Package parameters
 package = 'dragoon'
@@ -26,9 +27,13 @@ gch_builder = Builder(action = '$CC $CFLAGS $CCFLAGS $_CCCOMCOM ' +
 def path(p):
         return p
 
+col = colorizer()
+
 # Create a default environment. Have to set environment variables after
 # initialization so that SCons doesn't mess them up.
 default_env = Environment(ENV = os.environ, BUILDERS = {'GCH' : gch_builder})
+
+col.colorize(default_env)
 
 # Tells SCons to be smarter about caching dependencies
 default_env.SetOption('implicit_cache', 1)
