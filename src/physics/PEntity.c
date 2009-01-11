@@ -13,7 +13,7 @@
 #include "p_private.h"
 
 /* Distance below a entity to trace to look for ground */
-#define GROUND_DIST 0.03125f
+#define GROUND_DIST 0.003125f
 
 /* Limit the length of time a physics frame will simulate to account for
    lagged frames and gdb debugging */
@@ -29,7 +29,7 @@
 CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 
 /* Gravity, pixel velocity per second */
-float p_gravity = 100.f;
+float p_gravity = 500.f;
 
 /* Physics time elapsed this frame (may be less than real time) */
 int p_timeMsec, p_frameMsec;
@@ -100,6 +100,9 @@ void PEntity_impact(PEntity *entity, PImpactType type)
 \******************************************************************************/
 void PEntity_spawn(PEntity *entity, const char *className)
 {
+        if (!entity)
+                return;
+        entity->dead = FALSE;
         C_snprintf_buf(entity->name, "#%d (%s)", ++numEntities, className);
         CLink_add_rear(&entity->linkAll, &p_linkAll, entity);
 }

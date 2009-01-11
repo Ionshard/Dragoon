@@ -131,6 +131,11 @@ bool G_dispatch_menu(GEvent event)
                 }
         }
 
+        /* Swallow key-ups and mouse events when open */
+        else if ((event == GE_KEY_UP || event == GE_MOUSE_DOWN ||
+                  event == GE_MOUSE_UP || event == GE_MOUSE_MOVE) && menuShown)
+                return TRUE;
+
         /* Update menu */
         else if (event == GE_UPDATE) {
 

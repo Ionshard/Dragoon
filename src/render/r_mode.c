@@ -12,6 +12,9 @@
 
 #include "r_private.h"
 
+/* Camera motion speed in pixels per second */
+#define CAMERA_SPEED 10
+
 /* Screen mode parameters */
 int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale;
 bool r_clear, r_fullscreen;
@@ -20,7 +23,7 @@ bool r_clear, r_fullscreen;
 CCount r_countFaces, r_countLines;
 
 /* World-space camera */
-CVec r_camera;
+CVec r_camera, r_cameraTo;
 bool r_cameraOn;
 
 /******************************************************************************\
@@ -152,6 +155,13 @@ void R_end(void)
 \******************************************************************************/
 void R_beginCam(void)
 {
+        float prop;
+
+        /* Move the current camera view toward the target view */
+        if ((prop = CAMERA_SPEED * c_frameSec) > 1)
+                prop = 1;
+        r_camera = CVec_lerp(r_camera, prop, r_cameraTo);
+
         C_assert(!r_cameraOn);
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();

@@ -75,7 +75,7 @@ struct GFountain *GFountain_spawn(struct GFountainClass *,
                                   const GSpawnParams *);
 
 /* g_input.c */
-bool G_controlDirection(GEvent, CVec *, float speed);
+CVec G_keyToDir(int key);
 
 extern CVec g_mouse;
 extern int g_key, g_button;

@@ -81,6 +81,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         particle->entity.eventFunc = (PEventFunc)GParticle_eventFunc;
         particle->entity.origin = fountain->entity.origin;
         particle->entity.size = fountain->entity.size;
+        particle->entity.drag = fountainClass->drag;
         particle->entity.mass = 1;
         particle->entity.impactOther = PIT_WORLD;
         particle->entity.velocity =
@@ -155,6 +156,10 @@ void GFountain_parseClass(FILE *file, const char *className)
                         fountainClass->velocityRand.y = C_token_float(file);
                         C_closeBrace(file);
                 }
+
+                /* Particle drag */
+                else if (!strcasecmp(token, "drag"))
+                        fountainClass->drag = C_token_float(file);
 
                 /* Particle lifetime */
                 else if (!strcasecmp(token, "lifetime"))

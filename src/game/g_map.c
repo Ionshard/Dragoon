@@ -61,6 +61,12 @@ void G_saveMap(const char *filename)
         if (!filename || !filename[0] || !(file = C_fopen_write(filename)))
                 return;
 
+        /* Don't save maps with no entities */
+        if (!p_linkAll) {
+                C_warning("No entities, refusing to save map");
+                return;
+        }
+
         /* Write the size of params struct as header */
         header = sizeof (params);
         C_fwrite(file, &header, 1);

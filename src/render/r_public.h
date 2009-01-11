@@ -86,7 +86,7 @@ void R_initGl(void);
 bool R_setVideoMode(void);
 
 extern CCount r_countFaces;
-extern CVec r_camera;
+extern CVec r_camera, r_cameraTo;
 extern int r_height, r_width, r_widthScaled, r_heightScaled, r_scale;
 extern bool r_clear, r_fullscreen;
 

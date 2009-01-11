@@ -94,40 +94,16 @@ void G_update(void)
 /******************************************************************************\
  Convert a key code to a direction vector.
 \******************************************************************************/
-static CVec keyToDirection(int key)
+CVec G_keyToDir(int key)
 {
         if (key == 'a' || key == 'j' || key == SDLK_LEFT)
                 return CVec(-1, 0);
         if (key == 'd' || key == 'l' || key == SDLK_RIGHT)
                 return CVec(1, 0);
-        if (key == 'w' || key == 'i' || key == SDLK_UP)
+        if (key == 'w' || key == 'i' || key == SDLK_UP || key == ' ')
                 return CVec(0, -1);
         if (key == 's' || key == 'k' || key == SDLK_DOWN)
                 return CVec(0, 1);
         return CVec_zero();
-}
-
-/******************************************************************************\
- Keyboard direction control from keyboard events. Returns TRUE if [event]
- is a key down/up event that was interpreted as a direction command.
-\******************************************************************************/
-bool G_controlDirection(GEvent event, CVec *vec, float speed)
-{
-        CVec dir;
-        int signSpeed;
-
-        dir = keyToDirection(g_key);
-        if (!dir.x && !dir.y)
-                return FALSE;
-        if (event == GE_KEY_UP)
-                dir = CVec_scalef(dir, -1);
-        else if (event != GE_KEY_DOWN)
-                return FALSE;
-        signSpeed = C_sign(speed);
-        if (C_sign(vec->x) != dir.x * signSpeed)
-                vec->x += dir.x * speed;
-        if (C_sign(vec->y) != dir.y * signSpeed)
-                vec->y += dir.y * speed;
-        return TRUE;
 }
 

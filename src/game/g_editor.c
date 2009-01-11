@@ -173,14 +173,14 @@ bool G_dispatch_editor(GEvent event)
         /* Select an entity class to place using keys */
         if (event == GE_KEY_DOWN) {
                 if (!selectEntity(g_key))
-                        G_controlDirection(event, &camSpeed, CAM_SPEED);
+                        camSpeed = CVec_add(camSpeed, G_keyToDir(g_key));
                 return TRUE;
         }
 
         /* Stop moving camera */
         else if (event == GE_KEY_UP) {
                 if (g_key < 0x32 || g_key > 0x7f)
-                        G_controlDirection(event, &camSpeed, CAM_SPEED);
+                        camSpeed = CVec_sub(camSpeed, G_keyToDir(g_key));
                 return TRUE;
         }
 
@@ -221,8 +221,9 @@ bool G_dispatch_editor(GEvent event)
         /* Update camera */
         else if (event == GE_UPDATE) {
                 if (camSpeed.x || camSpeed.y) {
-                        r_camera = CVec_sub(r_camera,
-                                            CVec_scalef(camSpeed, c_frameSec));
+                        r_cameraTo = CVec_sub(r_cameraTo,
+                                              CVec_scalef(camSpeed,
+                                                          c_frameSec));
                         RText_init(&camStatus, NULL,
                                    C_va("%.1f, %.1f", r_camera.x, r_camera.y));
                         camStatus.origin.y = r_heightScaled -

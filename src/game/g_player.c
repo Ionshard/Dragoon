@@ -13,13 +13,14 @@
 #include "g_private.h"
 
 /* Player movement parameters */
-#define JUMP_V -100
-#define GROUND_A 500
+#define JUMP_V -200
+#define GROUND_A 800
 #define AIR_MOVE 0.2
 
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, cursor;
 static CVec control;
+static bool jumpHeld;
 
 /******************************************************************************\
  Player entity event function.
@@ -56,25 +57,45 @@ void G_drawPlayer(void)
 \******************************************************************************/
 void G_updatePlayer(void)
 {
+        float accelX;
+
         if (!CLink_linked(&playerEntity.linkAll))
                 return;
 
+        /* Horizontal movement */
+        accelX = 0;
+        if (control.x > 0)
+                accelX += GROUND_A;
+        else if (control.x < 0)
+                accelX -= GROUND_A;
+
+        /* Release jump */
+        if (control.y >= 0)
+                jumpHeld = FALSE;
+
         /* On the ground */
         if (playerEntity.ground) {
-                playerEntity.accel.x += control.x;
-                if (control.y < 0 && playerEntity.velocity.y > JUMP_V)
+                playerEntity.accel.x += accelX;
+                if (!jumpHeld && control.y < 0 &&
+                    playerEntity.velocity.y > JUMP_V) {
+                        jumpHeld = TRUE;
                         playerEntity.velocity.y = JUMP_V;
+                }
         }
 
         /* In the air */
         else
-                playerEntity.accel.x += control.x * AIR_MOVE;
+                playerEntity.accel.x += accelX * AIR_MOVE;
 
+        /* The player entity is updated before all others so we know where to
+           place the camera this frame */
         PEntity_update(&playerEntity);
-        r_camera = CVec_add(playerEntity.origin,
-                            CVec_divf(playerEntity.size, 2));
-        r_camera.x -= r_widthScaled / 2;
-        r_camera.y -= r_heightScaled / 2;
+
+        /* Update camera */
+        r_cameraTo = CVec_add(playerEntity.origin,
+                              CVec_divf(playerEntity.size, 2));
+        r_cameraTo.x -= r_widthScaled / 2;
+        r_cameraTo.y -= r_heightScaled / 2;
 }
 
 /******************************************************************************\
@@ -82,9 +103,13 @@ void G_updatePlayer(void)
 \******************************************************************************/
 bool G_dispatch_player(GEvent event)
 {
-        if (event != GE_KEY_DOWN && event != GE_KEY_UP)
+        /* Update controls */
+        if (event == GE_KEY_DOWN)
+                control = CVec_add(control, G_keyToDir(g_key));
+        else if (event == GE_KEY_UP)
+                control = CVec_sub(control, G_keyToDir(g_key));
+        else
                 return FALSE;
-        G_controlDirection(event, &control, GROUND_A);
 
         /* Mirror the sprite */
         if (control.x > 0)
