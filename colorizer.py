@@ -1,6 +1,9 @@
 #
-# Scons Output Colorizer v0.1 
-# Copyright (C) 2008 Mihail 'IceBreaker' Szabolcs -- theicebreaker007@gmail.com
+# Scons Output Colorizer v0.2
+# Copyright (C) 2008 Mihail 'IceBreaker' Szabolcs 
+#
+# e-mail: theicebreaker007@gmail.com
+# web: http://www.szabster.net
 #
 # Inspired from Blender's excellent SConstruct.
 #
@@ -35,71 +38,62 @@ class colorizer:
 	cYellow = '\033[93m'
 	cRed 	= '\033[91m'
 	cEnd 	= '\033[0m'
+	
+	# standardized color message class
+	class message:
+		# stores message and creates Scons action
+		def __init__(self, action, text, c1, c2, c3, end, target = False):
+			self.text 	= text
+			self.c1 	= c1
+			self.c2 	= c2
+			self.c3 	= c3
+			self.end	= end
+			self.target	= target
+			self.action = Action(str(action),strfunction=self.strfunction)
+			return
+		# get the ready prepapred Scons Action
+		def getAction(self):
+			return self.action;
+		# message output used by the Scons Action
+		def strfunction(self, target, source, env):
+			if self.target:
+				a = '%s' % (target[0])
+			else:
+				a = '%s' % (source[0])
+				
+			d, f = os.path.split(a)
+			e = self.end
+			t = str(self.text)
+			return self.c1+t+e+self.c2+" ==> "+e+"'"+self.c3+"%s" % (f) +e+"'"+e
 
 	def __init__(self,noColors=False):
-		# create actions
-		self.mylibaction 	= Action("$ARCOM", strfunction=self.my_linking_print)
-		self.myshlibaction 	= Action("$SHLINKCOM", strfunction=self.my_linking_print_so)
-		self.mylinkaction 	= Action("$LINKCOM", strfunction=self.my_program_print)
-			
-		self.mycaction 		= Action("$CCCOM", strfunction=self.my_compile_print)
-		self.myshcaction 	= Action("$SHCCCOM", strfunction=self.my_compile_print)
-		self.mycppaction 	= Action("$CXXCOM", strfunction=self.my_compile_print)
-		self.myshcppaction 	= Action("$SHCXXCOM", strfunction=self.my_compile_print)
-		
-		# create builders
-		self.shared_lib = Builder(	action = self.myshlibaction,
-									emitter = '$SHLIBEMITTER',
-									prefix = '$SHLIBPREFIX',
-									suffix = '$SHLIBSUFFIX',
-									src_suffix = '$SHOBJSUFFIX',
-								   	src_builder = 'SharedObject' )
 
-		self.static_lib = Builder(	action = self.mylibaction,
-									emitter = '$LIBEMITTER',
-									prefix = '$LIBPREFIX',
-									suffix = '$LIBSUFFIX',
-									src_suffix = '$OBJSUFFIX',
-									src_builder = 'StaticObject' )
-
-		self.program = Builder(	action = self.mylinkaction,
-								emitter = '$PROGEMITTER',
-								prefix = '$PROGPREFIX',
-								suffix = '$PROGSUFFIX',
-								src_suffix = '$OBJSUFFIX',
-								src_builder = 'Object',
-								target_scanner = SCons.Defaults.ProgScan )
-								
 		# just customize output, no colors
 		if noColors:
 			self.disableColors()
 		
+		# C compile messages
+		self.cmpCStaticMsg = self.message("$CCCOM","Compiling",
+											self.cBlue,self.cPurple,self.cYellow,self.cEnd)
+		self.cmpCSharedMsg = self.message("$SHCCCOM","Compiling",
+											self.cBlue,self.cPurple,self.cYellow,self.cEnd)
+											
+		# C++ compile messages
+		self.cmpCPPStaticMsg = self.message("$CXXCOM","Compiling",
+											self.cBlue,self.cPurple,self.cYellow,self.cEnd)
+		self.cmpCPPSharedMsg = self.message("$SHCXXCOM","Compiling",
+											self.cBlue,self.cPurple,self.cYellow,self.cEnd)
+											
+		# Linking messages
+		self.lnkStaticMsg = self.message("$ARCOM","Linking library",
+											self.cRed,self.cPurple,self.cYellow,self.cEnd,True)
+		self.lnkSharedMsg = self.message("$SHLINKCOM","Linking shared object",
+											self.cRed,self.cPurple,self.cYellow,self.cEnd,True)
+		self.lnkProgramMsg= self.message("$LINKCOM","Linking program",
+											self.cRed,self.cPurple,self.cYellow,self.cEnd,True)
+
 		return
 
-	# custom 'output' functions
-	def custom_print(self, c1, t1, c2, c3, t2):
-		return c1+t1+self.cEnd+c2+" ==> "+self.cEnd+"'"+c3+"%s" % (t2) +self.cEnd+"'"+self.cEnd
-
-	def my_compile_print(self, target, source, env):
-		a = '%s' % (source[0])
-		d, f = os.path.split(a)
-		return self.custom_print(self.cBlue,"Compiling",self.cPurple,self.cYellow,f)
-	
-	def my_linking_print(self, target, source, env):
-		t = '%s' % (target[0])
-		d, f = os.path.split(t)
-		return self.custom_print(self.cRed,"Linking library",self.cPurple,self.cYellow,f)
-
-	def my_linking_print_so(self, target, source, env):
-		t = '%s' % (target[0])
-		d, f = os.path.split(t)
-		return self.custom_print(self.cRed,"Linking shared object",self.cPurple,self.cYellow,f)
-
-	def my_program_print(self, target, source, env):
-		t = '%s' % (target[0])
-		d, f = os.path.split(t)
-		return self.custom_print(self.cRed,"Linking program",self.cPurple,self.cYellow,f)
-		
 	# set colors to empty strings thus disabling them on output
 	def disableColors(self):
 		self.cPurple	= ''
@@ -110,21 +104,66 @@ class colorizer:
 		self.cEnd 		= ''
 		return
 
-	# activates the customizer on a given Scons Environment
+	# colorize any given Scons Environment
 	def colorize(self, env):
 		if not env:
 			return False
-
-		# prepend/override the builders ( customize linking ) ...
-		env.Prepend(BUILDERS={	'Program'		:self.program,
-								'StaticLibrary' :self.static_lib,
-								'SharedLibrary' :self.shared_lib })
-		 
-		# customize compiling ...
-		static_ob, shared_ob = Tool.createObjBuilders(env)
-		static_ob.add_action('.c', self.mycaction)
-		static_ob.add_action('.cpp', self.mycppaction)
-		shared_ob.add_action('.c', self.myshcaction)
-		shared_ob.add_action('.cpp', self.myshcppaction)
 		
+		# customize linking ...
+		self.colorizeBuilder(env,'Program');
+		self.colorizeBuilder(env,'Library');
+		self.colorizeBuilder(env,'StaticLibrary');
+		self.colorizeBuilder(env,'SharedLibrary');
+		
+		# customize compiling ...
+		self.colorizeObjBuilders(env)
+		
+		return True		
+		
+	# colorize the object builders from any given Scons Environment
+	def colorizeObjBuilders(self, env):
+		if not env:
+			return False
+			
+		# Object Builders
+		static_ob, shared_ob = Tool.createObjBuilders(env)
+
+		# Set Static Object actions
+		static_ob.add_action('.c'	, self.cmpCStaticMsg.getAction() 	)
+		static_ob.add_action('.cpp'	, self.cmpCPPStaticMsg.getAction() 	)
+		# Set Shared Object actions
+		shared_ob.add_action('.c'	, self.cmpCSharedMsg.getAction()	)
+		shared_ob.add_action('.cpp'	, self.cmpCPPSharedMsg.getAction()	)
+		
+		return True
+		
+	# colorize any given builder from any given Scons Environment
+	def colorizeBuilder(self, env, builder, text="", target = True, color=""):
+		if not env or not builder:
+			return False
+			
+		# set default color to red
+		if not color:
+			color = self.cRed
+
+		action = ""
+		
+		# detect and use pre-built actions
+		if builder == 'SharedLibrary':
+			action = self.lnkSharedMsg.getAction()
+		elif builder == 'StaticLibrary' or builder == 'Library':
+			action = self.lnkStaticMsg.getAction()
+		elif builder == 'Program':
+			action = self.lnkProgramMsg.getAction()
+		elif text:	# add customized output to any given builder
+			_action = env['BUILDERS'][builder].action
+			action = self.message(_action,text,color,self.cPurple,self.cYellow,self.cEnd,target).getAction()
+			
+		# 1,2,3 action!	
+		if action:
+			try:
+				env['BUILDERS'][builder].action = action
+			except:
+				return False
+				
 		return True

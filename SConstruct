@@ -73,6 +73,8 @@ opts.Save(config_file, default_env)
 if default_env['color']:
         col = colorizer()
         col.colorize(default_env)
+        col.colorizeBuilder(default_env, 'GCH', 'Building pre-compiled header',
+                        True, col.cGreen)
 
 # Dump Environment object to debug SCons
 if default_env['dump_env']:
