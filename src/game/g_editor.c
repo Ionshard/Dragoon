@@ -13,7 +13,7 @@
 #include "g_private.h"
 
 /* Speed of camera movement */
-#define CAM_SPEED -100
+#define CAM_SPEED -250
 
 /* Filename of map being edited */
 char g_edit[C_NAME_MAX];
@@ -222,7 +222,7 @@ bool G_dispatch_editor(GEvent event)
         else if (event == GE_UPDATE) {
                 if (camSpeed.x || camSpeed.y) {
                         r_cameraTo = CVec_sub(r_cameraTo,
-                                              CVec_scalef(camSpeed,
+                                              CVec_scalef(camSpeed, CAM_SPEED *
                                                           c_frameSec));
                         RText_init(&camStatus, NULL,
                                    C_va("%.1f, %.1f", r_camera.x, r_camera.y));
