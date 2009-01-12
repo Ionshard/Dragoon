@@ -124,7 +124,59 @@ PEntity *G_spawn(const char *className, const GSpawnParams *params)
         }
         if ((entity = entityClass->spawnFunc(entityClass, params)))
                 entity->entityClass = entityClass;
+
+        /* Push the entity we just spawned behind all entities that are
+           z-ordered in front of it */
+        while (CLink_prev(&entity->linkAll)) {
+                GEntityClass *otherClass;
+                PEntity *other;
+
+                other = CLink_get(CLink_prev(&entity->linkAll));
+                otherClass = (GEntityClass *)other->entityClass;
+                if (otherClass->z <= entityClass->z)
+                        break;
+                CLink_forward(&entity->linkAll);
+        }
+
         return entity;
+}
+
+/******************************************************************************\
+ Push an entity forward in the linked list. Does not push it behind entities
+ z-ordered in behind it.
+\******************************************************************************/
+void G_pushForwardEntity(PEntity *entity)
+{
+        GEntityClass *entityClass, *otherClass;
+        PEntity *other;
+
+        if (!entity || !CLink_prev(&entity->linkAll))
+                return;
+        other = CLink_get(CLink_prev(&entity->linkAll));
+        otherClass = (GEntityClass *)other->entityClass;
+        entityClass = (GEntityClass *)entity->entityClass;
+        if (otherClass->z < entityClass->z)
+                return;
+        CLink_forward(&entity->linkAll);
+}
+
+/******************************************************************************\
+ Push an entity back in the linked list. Does not push it in front of
+ entities z-ordered in front of it.
+\******************************************************************************/
+void G_pushBackEntity(PEntity *entity)
+{
+        GEntityClass *entityClass, *otherClass;
+        PEntity *other;
+
+        if (!entity || !CLink_next(&entity->linkAll))
+                return;
+        other = CLink_get(CLink_next(&entity->linkAll));
+        otherClass = (GEntityClass *)other->entityClass;
+        entityClass = (GEntityClass *)entity->entityClass;
+        if (otherClass->z > entityClass->z)
+                return;
+        CLink_back(&entity->linkAll);
 }
 
 /******************************************************************************\

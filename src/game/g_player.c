@@ -19,7 +19,6 @@
 
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, cursor;
-static CVec control;
 static bool jumpHeld;
 
 /******************************************************************************\
@@ -64,19 +63,19 @@ void G_updatePlayer(void)
 
         /* Horizontal movement */
         accelX = 0;
-        if (control.x > 0)
+        if (g_control.x > 0)
                 accelX += GROUND_A;
-        else if (control.x < 0)
+        else if (g_control.x < 0)
                 accelX -= GROUND_A;
 
         /* Release jump */
-        if (control.y >= 0)
+        if (g_control.y >= 0)
                 jumpHeld = FALSE;
 
         /* On the ground */
         if (playerEntity.ground) {
                 playerEntity.accel.x += accelX;
-                if (!jumpHeld && control.y < 0 &&
+                if (!jumpHeld && g_control.y < 0 &&
                     playerEntity.velocity.y > JUMP_V) {
                         jumpHeld = TRUE;
                         playerEntity.velocity.y = JUMP_V;
@@ -104,17 +103,13 @@ void G_updatePlayer(void)
 bool G_dispatch_player(GEvent event)
 {
         /* Update controls */
-        if (event == GE_KEY_DOWN)
-                control = CVec_add(control, G_keyToDir(g_key));
-        else if (event == GE_KEY_UP)
-                control = CVec_sub(control, G_keyToDir(g_key));
-        else
+        if (!G_controlEvent(event))
                 return FALSE;
 
         /* Mirror the sprite */
-        if (control.x > 0)
+        if (g_control.x > 0)
                 playerHead.mirror = playerBody.mirror = TRUE;
-        else if (control.x < 0)
+        else if (g_control.x < 0)
                 playerHead.mirror = playerBody.mirror = FALSE;
 
         return TRUE;

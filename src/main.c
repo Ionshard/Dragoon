@@ -16,7 +16,7 @@
 #include "game/g_public.h"
 
 /* Debug variables */
-static int memCheck, testWorld;
+static int memCheck;
 
 /******************************************************************************\
  Called when the program quits (normally or not). Performs an orderly cleanup.
@@ -66,12 +66,9 @@ static void registerVars(void)
         C_register_buf(g_edit, "edit", "Filename of map to edit", FALSE);
 
         /* Debug variables */
-        if (CHECKED) {
+        if (CHECKED)
                 C_register_int(&memCheck, "memCheck",
                                "Test memory checking: 0-9", FALSE);
-                C_register_int(&testWorld, "testWorld",
-                               "Initialize to test world", FALSE);
-        }
 }
 
 /******************************************************************************\
@@ -118,8 +115,6 @@ int main(int argc, char *argv[])
         if (CHECKED) {
                 if (memCheck)
                         C_testMemCheck(memCheck);
-                if (testWorld)
-                        G_loadTest();
         }
 
         /* Initialize */
@@ -135,9 +130,7 @@ int main(int argc, char *argv[])
 
         /* Start the game */
         G_parseEntityCfg("game/entities.cfg");
-        if (testWorld)
-                G_loadTest();
-        else if (g_edit[0])
+        if (g_edit[0])
                 G_initEditor();
         else {
                 G_loadMap("map/limbo", CVec_zero());

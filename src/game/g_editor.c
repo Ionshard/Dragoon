@@ -26,7 +26,7 @@ static bool editSizing;
 
 /* Camera control */
 static RText camStatus;
-static CVec camSpeed, mouseWorld;
+static CVec mouseWorld;
 
 /******************************************************************************\
  Load a map for editing.
@@ -79,7 +79,7 @@ static void pickEntity(void)
         }
         editEntity = ents[nearest];
         editClass = class_nearest;
-        editOffset = CVec_sub(editEntity->origin, mouseWorld);
+        editOffset = CVec_clamp(CVec_sub(editEntity->origin, mouseWorld), 1);
 }
 
 /******************************************************************************\
@@ -90,23 +90,25 @@ static bool selectEntity(int key)
         GSpawnParams params;
         GEntityClass *entClass;
 
-        PEntity_kill(editEntity);
-        editEntity = NULL;
-        editSizing = FALSE;
-
         /* Select the next entity class */
         if (editClass && editClass->editorKey == key) {
+                GEntityClass *firstClass;
                 bool found;
 
                 found = FALSE;
+                firstClass = NULL;
                 for (entClass = (GEntityClass *)g_classRoot; entClass;
                      entClass = (GEntityClass *)entClass->named.next) {
                         if (entClass->editorKey != key)
                                 continue;
+                        if (!firstClass)
+                                firstClass = entClass;
                         if (found)
                                 break;
                         found = editClass == entClass;
                 }
+                if (!entClass)
+                        entClass = firstClass;
         }
 
         /* Select a new entity class */
@@ -116,16 +118,20 @@ static bool selectEntity(int key)
                      entClass = (GEntityClass *)entClass->named.next);
 
         /* Class not found */
-        if (!entClass) {
-                editClass = NULL;
+        if (!entClass)
                 return FALSE;
-        }
 
+        /* Kill the old entity being edited */
+        PEntity_kill(editEntity);
+        editEntity = NULL;
+        editSizing = FALSE;
+
+        /* Spawn new edit entity */
         params.origin = mouseWorld;
         params.size = entClass->size;
         editClass = (editEntity = G_spawn(entClass->named.name, &params)) ?
                     entClass : NULL;
-        editOffset = CVec_divf(editEntity->size, -2);
+        editOffset = CVec_clamp(CVec_divf(editEntity->size, -2), 1);
         editEntity->origin = CVec_add(editEntity->origin, editOffset);
         return TRUE;
 }
@@ -173,22 +179,14 @@ bool G_dispatch_editor(GEvent event)
         /* Select an entity class to place using keys */
         if (event == GE_KEY_DOWN) {
                 if (!selectEntity(g_key))
-                        camSpeed = CVec_add(camSpeed, G_keyToDir(g_key));
+                        G_controlEvent(event);
                 return TRUE;
         }
 
         /* Stop moving camera */
         else if (event == GE_KEY_UP) {
-                if (g_key < 0x32 || g_key > 0x7f)
-                        camSpeed = CVec_sub(camSpeed, G_keyToDir(g_key));
+                G_controlEvent(event);
                 return TRUE;
-        }
-
-        /* Move mouse to place entity */
-        else if (event == GE_MOUSE_MOVE) {
-                mouseWorld = CVec_clamp(CVec_add(g_mouse, r_camera),
-                                        g_shift ? 16 : 1);
-                resizeEntity();
         }
 
         else if (event == GE_MOUSE_DOWN) {
@@ -210,26 +208,30 @@ bool G_dispatch_editor(GEvent event)
                         deleteEntity();
 
                 /* Mouse-wheel changes list order of current entity */
-                if (editEntity) {
-                        if (g_button == SDL_BUTTON_WHEELUP)
-                                CLink_back(&editEntity->linkAll);
-                        if (g_button == SDL_BUTTON_WHEELDOWN)
-                                CLink_forward(&editEntity->linkAll);
-                }
+                if (g_button == SDL_BUTTON_WHEELUP)
+                        G_pushBackEntity(editEntity);
+                if (g_button == SDL_BUTTON_WHEELDOWN)
+                        G_pushForwardEntity(editEntity);
         }
 
         /* Update camera */
         else if (event == GE_UPDATE) {
-                if (camSpeed.x || camSpeed.y) {
-                        r_cameraTo = CVec_sub(r_cameraTo,
-                                              CVec_scalef(camSpeed, CAM_SPEED *
-                                                          c_frameSec));
+                if (g_control.x || g_control.y) {
+                        CVec diff;
+
+                        diff = CVec_scalef(g_control, CAM_SPEED * c_frameSec);
+                        r_cameraTo = CVec_sub(r_cameraTo, diff);
                         RText_init(&camStatus, NULL,
                                    C_va("%.1f, %.1f", r_camera.x, r_camera.y));
                         camStatus.origin.y = r_heightScaled -
                                              camStatus.boxSize.y * 2;
                 }
                 RText_draw(&camStatus);
+
+                /* Update the position/size of the edit entity */
+                mouseWorld = CVec_clamp(CVec_add(g_mouse, r_camera),
+                                        g_shift ? 16 : 1);
+                resizeEntity();
         }
 
         return FALSE;

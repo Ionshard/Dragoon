@@ -13,8 +13,10 @@
 #include "g_private.h"
 
 /* Keyboard */
+CVec g_control;
 int g_key;
 bool g_shift, g_alt, g_ctrl;
+static bool leftHeld, rightHeld, upHeld, downHeld;
 
 /* Mouse */
 CVec g_mouse;
@@ -92,9 +94,9 @@ void G_update(void)
 }
 
 /******************************************************************************\
- Convert a key code to a direction vector.
+ Convert a keycode to a direction.
 \******************************************************************************/
-CVec G_keyToDir(int key)
+static CVec keyToDir(int key)
 {
         if (key == 'a' || key == 'j' || key == SDLK_LEFT)
                 return CVec(-1, 0);
@@ -105,5 +107,30 @@ CVec G_keyToDir(int key)
         if (key == 's' || key == 'k' || key == SDLK_DOWN)
                 return CVec(0, 1);
         return CVec_zero();
+}
+
+/******************************************************************************\
+ Process control events.
+\******************************************************************************/
+bool G_controlEvent(GEvent event)
+{
+        CVec dir;
+
+        if (event == GE_KEY_DOWN) {
+                dir = keyToDir(g_key);
+                leftHeld |= dir.x < 0;
+                rightHeld |= dir.x > 0;
+                upHeld |= dir.y < 0;
+                downHeld |= dir.y > 0;
+        } else if (event == GE_KEY_UP) {
+                dir = keyToDir(g_key);
+                leftHeld &= dir.x >= 0;
+                rightHeld &= dir.x <= 0;
+                upHeld &= dir.y >= 0;
+                downHeld &= dir.y <= 0;
+        } else
+                return FALSE;
+        g_control = CVec(rightHeld - leftHeld, downHeld - upHeld);
+        return TRUE;
 }
 

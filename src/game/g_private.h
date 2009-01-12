@@ -57,6 +57,8 @@ bool G_dispatch_editor(GEvent);
 /* g_entity.c */
 void GEntityClass_init(GEntityClass *);
 bool GEntityClass_parseToken(GEntityClass *, FILE *, const char *token);
+void G_pushBackEntity(PEntity *);
+void G_pushForwardEntity(PEntity *);
 PEntity *G_spawn(const char *className, const GSpawnParams *);
 
 extern CNamed *g_classRoot;
@@ -75,9 +77,9 @@ struct GFountain *GFountain_spawn(struct GFountainClass *,
                                   const GSpawnParams *);
 
 /* g_input.c */
-CVec G_keyToDir(int key);
+bool G_controlEvent(GEvent);
 
-extern CVec g_mouse;
+extern CVec g_control, g_mouse;
 extern int g_key, g_button;
 extern bool g_shift, g_alt, g_ctrl;
 

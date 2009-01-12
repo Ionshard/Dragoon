@@ -245,9 +245,8 @@ static inline CColor CColor_lerp(CColor a, float lerp, CColor b)
 \******************************************************************************/
 static inline float C_clamp(float value, float unit)
 {
-        if (value < 0)
-                return (int)(value * -unit) / -unit;
-        return (int)(value * unit) / unit;
+        return value < 0 ? (int)(value / -unit) * -unit :
+                           (int)(value / unit) * unit;
 }
 
 static inline CVec CVec_clamp(CVec v, float u)
