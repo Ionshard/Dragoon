@@ -12,24 +12,37 @@
 
 #include "c_private.h"
 
+/* Number of memory root hash bins */
+#define ROOT_BINS 256
+
 /* When memory checking is enabled, this structure is prepended to every
    allocated block. There is also a no-mans-land chunk, filled with a specific
    byte, at the end of every allocated block as well. */
-#define noMansLand_BYTE 0x5a
-#define noMansLand_SIZE 64
+#define NO_MANS_LAND_BYTE 0x5a
+#define NO_MANS_LAND_SIZE 64
 typedef struct MemTag {
         struct MemTag *next;
         const char *allocFunc, *freeFunc;
         void *data;
         size_t size;
         bool freed;
-        char noMansLand[noMansLand_SIZE];
+        char noMansLand[NO_MANS_LAND_SIZE];
 } MemTag;
 
 #if CHECKED
-static MemTag *memRoot;
+static MemTag *memRoots[ROOT_BINS];
 static size_t memBytes, memBytesMax;
 static int memCalls;
+#endif
+
+/******************************************************************************\
+ Find the root bin for a given pointer address.
+\******************************************************************************/
+#if CHECKED
+static MemTag **findRoot(const void *pointer)
+{
+        return memRoots + (((int)pointer >> 4) % ROOT_BINS);
+}
 #endif
 
 /******************************************************************************\
@@ -38,25 +51,29 @@ static int memCalls;
 #if CHECKED
 static void *malloc_full(const char *func, size_t size)
 {
-        MemTag *tag;
+        MemTag *tag, **root;
         size_t realSize;
 
-        realSize = size + sizeof (MemTag) + noMansLand_SIZE;
+        realSize = size + sizeof (MemTag) + NO_MANS_LAND_SIZE;
         tag = malloc(realSize);
         tag->data = (char *)tag + sizeof (MemTag);
         tag->size = size;
         tag->allocFunc = func;
         tag->freed = FALSE;
-        memset(tag->noMansLand, noMansLand_BYTE, noMansLand_SIZE);
-        memset((char *)tag->data + size, noMansLand_BYTE, noMansLand_SIZE);
+        memset(tag->noMansLand, NO_MANS_LAND_BYTE, NO_MANS_LAND_SIZE);
+        memset((char *)tag->data + size, NO_MANS_LAND_BYTE, NO_MANS_LAND_SIZE);
         tag->next = NULL;
-        if (memRoot)
-                tag->next = memRoot;
-        memRoot = tag;
+
+        /* Add tag to linked list */
+        root = findRoot(tag->data);
+        if (*root)
+                tag->next = *root;
+        *root = tag;
         memBytes += size;
         memCalls++;
         if (memBytes > memBytesMax)
                 memBytesMax = memBytes;
+
         return tag->data;
 }
 #endif
@@ -70,7 +87,7 @@ static MemTag *findTag(const void *ptr, MemTag **prevTag)
         MemTag *tag, *prev;
 
         prev = NULL;
-        tag = memRoot;
+        tag = *findRoot(ptr);
         while (tag && tag->data != ptr) {
                 prev = tag;
                 tag = tag->next;
@@ -90,7 +107,7 @@ static MemTag *findTag(const void *ptr, MemTag **prevTag)
 #if CHECKED
 void *C_realloc_full(const char *func, void *ptr, size_t size)
 {
-        MemTag *tag, *prevTag, *oldTag;
+        MemTag **root, *tag, *prevTag, *oldTag;
         size_t realSize;
 
         if (!ptr)
@@ -99,15 +116,16 @@ void *C_realloc_full(const char *func, void *ptr, size_t size)
                 C_log(CLL_ERROR, func,
                       "Trying to reallocate unallocated address (0x%x)", ptr);
         oldTag = tag;
-        realSize = size + sizeof (MemTag) + noMansLand_SIZE;
+        realSize = size + sizeof (MemTag) + NO_MANS_LAND_SIZE;
         tag = realloc((char *)ptr - sizeof (MemTag), realSize);
         if (!tag)
                 C_error("Out of memory, %s() tried to allocate %d bytes",
                         func, size );
         if (prevTag)
                 prevTag->next = tag;
-        if (oldTag == memRoot)
-                memRoot = tag;
+        root = findRoot(ptr);
+        if (oldTag == *root)
+                *root = tag;
         memBytes += size - tag->size;
         if (size > tag->size) {
                 memCalls++;
@@ -117,7 +135,7 @@ void *C_realloc_full(const char *func, void *ptr, size_t size)
         tag->size = size;
         tag->allocFunc = func;
         tag->data = (char *)tag + sizeof (MemTag);
-        memset((char *)tag->data + size, noMansLand_BYTE, noMansLand_SIZE);
+        memset((char *)tag->data + size, NO_MANS_LAND_BYTE, NO_MANS_LAND_SIZE);
         return tag->data;
 }
 #endif
@@ -140,8 +158,8 @@ static int checkNoMansLand(const char *ptr)
 {
         int i;
 
-        for (i = 0; i < noMansLand_SIZE; i++)
-                if (ptr[i] != noMansLand_BYTE)
+        for (i = 0; i < NO_MANS_LAND_SIZE; i++)
+                if (ptr[i] != NO_MANS_LAND_BYTE)
                         return FALSE;
         return TRUE;
 }
@@ -156,7 +174,7 @@ static int checkNoMansLand(const char *ptr)
 #if CHECKED
 void C_free_full(const char *func, void *ptr)
 {
-        MemTag *tag, *prevTag, *oldTag;
+        MemTag **root, *tag, *prevTag, *oldTag;
 
         if (!ptr)
                 return;
@@ -184,9 +202,39 @@ void C_free_full(const char *func, void *ptr)
         tag = realloc(tag, sizeof (*tag));
         if (prevTag)
                 prevTag->next = tag;
-        if (oldTag == memRoot)
-                memRoot = tag;
+        root = findRoot(ptr);
+        if (oldTag == *root)
+                *root = tag;
         memBytes -= tag->size;
+}
+#endif
+
+/******************************************************************************\
+ Check a memory tag.
+\******************************************************************************/
+#if CHECKED
+static void checkTag(MemTag *tag)
+{
+        unsigned int i;
+
+        if (tag->freed)
+                return;
+        C_warning("%s() leaked %d bytes (0x%08x)",
+                  tag->allocFunc, tag->size, tag->data);
+
+        /* If we leaked a string, we can print it */
+        if (tag->size < 1)
+                return;
+        for (i = 0; C_isPrint(((char *)tag->data)[i]); i++) {
+                char buf[128];
+
+                if (i >= tag->size - 1 || i >= sizeof (buf) - 1 ||
+                    !((char *)tag->data)[i + 1]) {
+                        C_strncpy_buf(buf, tag->data);
+                        C_debug("Looks like a string: '%s'", buf);
+                        break;
+                }
+        }
 }
 #endif
 
@@ -197,34 +245,21 @@ void C_free_full(const char *func, void *ptr)
 void C_checkLeaks(void)
 {
         MemTag *tag;
-        int tags;
+        int i, tags, bins;
 
-        tags = 0;
-        for (tag = memRoot; tag; tag = tag->next) {
-                unsigned int i;
-
-                tags++;
-                if (tag->freed)
+        for (bins = tags = i = 0; i < ROOT_BINS; i++) {
+                if (!memRoots[i])
                         continue;
-                C_warning("%s() leaked %d bytes (0x%08x)",
-                          tag->allocFunc, tag->size, tag->data);
-
-                /* If we leaked a string, we can print it */
-                if (tag->size < 1)
-                        continue;
-                for (i = 0; C_isPrint(((char *)tag->data)[i]); i++) {
-                        char buf[128];
-
-                        if (i >= tag->size - 1 || i >= sizeof (buf) - 1 ||
-                            !((char *)tag->data)[i + 1]) {
-                                C_strncpy_buf(buf, tag->data);
-                                C_debug("Looks like a string: '%s'", buf);
-                                break;
-                        }
+                bins++;
+                for (tag = memRoots[i]; tag; tag = tag->next) {
+                        checkTag(tag);
+                        tags++;
                 }
         }
-        C_debug("%d allocation calls, high mark %.1fmb, %d tags",
-                memCalls, memBytesMax / 1048576.f, tags);
+        C_debug("%d allocation calls, high mark %.1fmb, %d tags, "
+                "%d/%d bins used (%d%%), %.1f tags per bin",
+                memCalls, memBytesMax / 1048576.f, tags,
+                bins, ROOT_BINS, bins * 100 / ROOT_BINS, (float)tags / bins);
 }
 #endif
 
@@ -262,13 +297,13 @@ void C_testMemCheck(int test)
                 break;
         case 6: C_debug("Simulating memory underrun");
                 ptr = C_malloc(1024);
-                for (i = 0; i > -noMansLand_SIZE / 2; i--)
+                for (i = 0; i > -NO_MANS_LAND_SIZE / 2; i--)
                         ptr[i] = 42;
                 C_free(ptr);
                 break;
         case 7: C_debug("Simulating memory overrun");
                 ptr = C_malloc(1024);
-                for (i = 1024; i < 1024 + noMansLand_SIZE / 2; i++)
+                for (i = 1024; i < 1024 + NO_MANS_LAND_SIZE / 2; i++)
                         ptr[i] = 42;
                 C_free(ptr);
                 break;

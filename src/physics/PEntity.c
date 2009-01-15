@@ -306,8 +306,7 @@ static void PEntity_clipAccel(PEntity *entity)
 
                 /* Horizontal */
                 if (entity->accel.x &&
-                    other->origin.y + entity->stepSize <
-                    entity->origin.y + entity->size.y &&
+                    other->origin.y < entity->origin.y + entity->size.y &&
                     other->origin.y + other->size.y > entity->origin.y) {
 
                         /* Clip left */

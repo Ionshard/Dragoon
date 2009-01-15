@@ -131,7 +131,7 @@ void G_spawnPlayer(CVec origin)
         playerEntity.eventFunc = (PEventFunc)playerEvent;
         playerEntity.impactOther = PIT_ENTITY;
         playerEntity.manualUpdate = TRUE;
-        playerEntity.stepSize = 4;
+        playerEntity.stepSize = 16;
         PEntity_spawn(&playerEntity, "Player");
 }
 
