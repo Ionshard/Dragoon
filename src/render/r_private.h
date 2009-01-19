@@ -37,7 +37,9 @@ typedef struct RSpriteData {
         RTexture *texture;
         CColor modulate;
         CVec boxOrigin, boxSize, center;
+        int nextMsec;
         bool additive, flip, mirror;
+        char nextName[C_NAME_MAX];
 } RSpriteData;
 
 /* r_mode.c */

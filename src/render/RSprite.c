@@ -80,6 +80,13 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
                         haveCenter = TRUE;
                 }
 
+                /* Next animation frame */
+                else if (!strcasecmp(token, "next") && C_openBrace(file)) {
+                        C_strncpy_buf(data->nextName, C_token(file));
+                        data->nextMsec = C_token_int(file);
+                        C_closeBrace(file);
+                }
+
                 else
                         C_warning("Unknown sprite param '%s'", token);
 
@@ -104,17 +111,28 @@ void R_parseSpriteCfg(const char *filename)
                 RSpriteData *data;
                 const char *token;
 
-                /* Read sprite name */
+                /* Read sprite name or command */
                 token = C_token(file);
                 if (!token[0])
                         continue;
-                data = CNamed_alloc(&dataRoot, token,
-                                    sizeof (RSpriteData), NULL, FALSE);
 
-                /* Parse properties */
-                if (!C_openBrace(file))
+                /* Parse commands */
+                if (!C_openBrace(file)) {
+
+                        /* Include another config */
+                        if (!strcasecmp(token, "include")) {
+                                token = C_token(file);
+                                R_parseSpriteCfg(token);
+                        }
+
+                        else
+                                C_warning("Unrecognized command '%s'", token);
                         continue;
-                if (data)
+                }
+
+                /* Parse sprite section */
+                if ((data = CNamed_alloc(&dataRoot, token,
+                                         sizeof (RSpriteData), NULL, FALSE)))
                         parseSpriteSection(file, data);
                 else
                         C_warning("Sprite '%s' already defined", token);
@@ -151,7 +169,47 @@ bool RSprite_init(RSprite *sprite, const char *name)
         sprite->data = data;
         sprite->size = data->boxSize;
         sprite->modulate = CColor_white();
+        sprite->initMsec = c_timeMsec;
+        C_strncpy_buf(sprite->name, name);
         return TRUE;
+}
+
+/******************************************************************************\
+ Change the animation of an initialized sprite.
+\******************************************************************************/
+bool RSprite_play(RSprite *sprite, const char *name)
+{
+        if (!sprite || (sprite->data && !strcmp(name, sprite->name))) {
+
+                /* Pump animation frame */
+                if (sprite->data->nextName[0] &&
+                    sprite->initMsec + sprite->data->nextMsec <= c_timeMsec) {
+                        char savedName[C_NAME_MAX];
+
+                        C_strncpy_buf(savedName, sprite->name);
+                        RSprite_init(sprite, sprite->data->nextName);
+                        C_strncpy_buf(sprite->name, savedName);
+                }
+
+                return TRUE;
+        }
+        return RSprite_init(sprite, name);
+}
+
+/******************************************************************************\
+ Get the coordinates of a sprite's center.
+\******************************************************************************/
+CVec RSprite_getCenter(const RSprite *sprite)
+{
+        CVec center;
+
+        center = sprite->data->center;
+        if (sprite->mirror)
+                center.x = sprite->data->boxSize.x - center.x;
+        if (sprite->flip)
+                center.x = sprite->data->boxSize.y - center.y;
+        return CVec_div(CVec_scale(center, sprite->size),
+                        sprite->data->boxSize);
 }
 
 /******************************************************************************\
@@ -162,7 +220,7 @@ void RSprite_draw(const RSprite *sprite)
         const RSpriteData *data;
         RVertex verts[4];
         CColor modulate;
-        CVec surfaceSize;
+        CVec surfaceSize, center;
         const unsigned short indices[] = { 0, 1, 2, 3, 0 };
         bool smooth, flip, mirror;
 
@@ -179,10 +237,17 @@ void RSprite_draw(const RSprite *sprite)
         /* Setup transformation matrix */
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
-        glTranslatef(sprite->origin.x + sprite->size.x / 2,
-                     sprite->origin.y + sprite->size.y / 2, sprite->z);
-        if ((smooth = sprite->angle != 0.f))
+        center = CVec_divf(sprite->size, 2);
+        glTranslatef(sprite->origin.x + center.x,
+                     sprite->origin.y + center.y, sprite->z);
+        if ((smooth = sprite->angle != 0.f)) {
+                CVec trans;
+
+                trans = CVec_sub(RSprite_getCenter(sprite), center);
+                glTranslatef(trans.x, trans.y, 0);
                 glRotatef(C_radToDeg(sprite->angle), 0.0, 0.0, 1.0);
+                glTranslatef(-trans.x, -trans.y, 0);
+        }
         flip = sprite->flip ^ sprite->data->flip;
         mirror = sprite->mirror ^ sprite->data->mirror;
         glScalef(mirror ? -sprite->size.x : sprite->size.x,
@@ -242,6 +307,20 @@ void RSprite_center(RSprite *sprite, CVec origin, CVec size)
         if (!sprite || !sprite->data)
                 return;
         sprite->origin = CVec_sub(CVec_add(origin, CVec_divf(size, 2)),
-                                  sprite->data->center);
+                                  RSprite_getCenter(sprite));
+}
+
+/******************************************************************************\
+ Angle a sprite to look at a point.
+\******************************************************************************/
+void RSprite_lookAt(RSprite *sprite, CVec origin)
+{
+        CVec center, diff;
+
+        if (!sprite || !sprite->data)
+                return;
+        center = CVec_add(sprite->origin, RSprite_getCenter(sprite));
+        diff = CVec_sub(origin, center);
+        sprite->angle = CVec_angle(diff);
 }
 

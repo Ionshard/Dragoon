@@ -26,7 +26,9 @@ typedef struct {
         CColor modulate;
         CVec origin, size;
         float angle, z;
+        int initMsec;
         bool flip, mirror;
+        char name[C_NAME_MAX];
 } RSprite;
 
 /* Text object */
@@ -97,6 +99,9 @@ void R_parseSpriteCfg(const char *filename);
 bool RSprite_init(RSprite *, const char *name);
 void RSprite_center(RSprite *, CVec origin, CVec size);
 void RSprite_draw(const RSprite *);
+CVec RSprite_getCenter(const RSprite *);
+void RSprite_lookAt(RSprite *, CVec origin);
+bool RSprite_play(RSprite *, const char *name);
 CVec R_spriteSize(const char *name);
 
 /* RText.c */

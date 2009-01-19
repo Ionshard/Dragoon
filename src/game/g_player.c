@@ -17,8 +17,14 @@
 #define GROUND_A 800
 #define AIR_MOVE 0.2
 
+/* Player head angle limit */
+#define HEAD_ANGLE_LIMIT (M_PI / 4)
+
+/* Player muzzle vertical offset from entity center */
+#define MUZZLE_OFFSET 4
+
 static PEntity playerEntity;
-static RSprite playerHead, playerBody, cursor;
+static RSprite playerHead, playerBody, playerWeapon, cursor;
 static bool jumpHeld;
 
 /******************************************************************************\
@@ -36,17 +42,33 @@ static int playerEvent(PEntity *entity, int event, void *args)
 \******************************************************************************/
 void G_drawPlayer(void)
 {
-        CVec center;
+        CVec aim, muzzle;
 
+        muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
+        muzzle.y += MUZZLE_OFFSET;
         RSprite_center(&playerBody, playerEntity.origin, playerEntity.size);
-        playerHead.origin = playerBody.origin;
-        playerHead.origin.y -= 7;
-        playerBody.origin.y += 8;
-        cursor.origin = CVec_add(r_camera, g_mouse);
-        center = CVec_divf(CVec(r_widthScaled, r_heightScaled), 2);
-        cursor.angle = CVec_angle(CVec_sub(g_mouse, center));
-        RSprite_draw(&playerHead);
+        RSprite_center(&playerWeapon, muzzle, CVec_zero());
+        RSprite_center(&playerHead, playerEntity.origin, playerEntity.size);
+
+        /* Position the cursor */
+        aim = CVec_add(r_camera, g_mouse);
+        RSprite_center(&cursor, aim, CVec_zero());
+        RSprite_lookAt(&cursor, muzzle);
+        RSprite_lookAt(&playerHead, aim);
+        RSprite_lookAt(&playerWeapon, aim);
+
+        /* Mirror the sprite */
+        playerBody.mirror = cursor.origin.x - playerBody.origin.x +
+                            playerBody.size.x / 2.f > 0;
+        playerWeapon.mirror = playerBody.mirror;
+        if (!(playerHead.mirror = playerBody.mirror)) {
+                playerHead.angle += M_PI;
+                playerWeapon.angle += M_PI;
+        }
+
         RSprite_draw(&playerBody);
+        RSprite_draw(&playerHead);
+        RSprite_draw(&playerWeapon);
         RSprite_draw(&cursor);
 }
 
@@ -80,11 +102,16 @@ void G_updatePlayer(void)
                         jumpHeld = TRUE;
                         playerEntity.velocity.y = JUMP_V;
                 }
+                RSprite_play(&playerBody,
+                             g_control.x ? "playerBodyRun" : "playerBody");
         }
 
         /* In the air */
-        else
+        else {
                 playerEntity.accel.x += accelX * AIR_MOVE;
+                RSprite_play(&playerBody, playerEntity.velocity.y < 0 ?
+                                          "playerBodyUp" : "playerBodyDown");
+        }
 
         /* The player entity is updated before all others so we know where to
            place the camera this frame */
@@ -106,12 +133,6 @@ bool G_dispatch_player(GEvent event)
         if (!G_controlEvent(event))
                 return FALSE;
 
-        /* Mirror the sprite */
-        if (g_control.x > 0)
-                playerHead.mirror = playerBody.mirror = TRUE;
-        else if (g_control.x < 0)
-                playerHead.mirror = playerBody.mirror = FALSE;
-
         return TRUE;
 }
 
@@ -123,8 +144,9 @@ void G_spawnPlayer(CVec origin)
         RSprite_init(&cursor, "cursor");
         RSprite_init(&playerHead, "playerHead");
         RSprite_init(&playerBody, "playerBody");
+        RSprite_init(&playerWeapon, "repelCannon");
         playerEntity.origin = origin;
-        playerEntity.size = CVec(12, 32);
+        playerEntity.size = CVec(10, 18);
         playerEntity.mass = 1;
         playerEntity.friction = 5;
         playerEntity.drag = 0;

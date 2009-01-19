@@ -252,7 +252,7 @@ static void PEntity_unstick(PEntity *entity, const PEntity *other)
 static bool PEntity_stepOver(PEntity *entity, PEntity *other)
 {
         PTrace trace;
-        CVec to;
+        CVec to, oldOrigin;
         float stepHeight;
 
         if (!entity->velocity.x)
@@ -268,13 +268,16 @@ static bool PEntity_stepOver(PEntity *entity, PEntity *other)
         trace = PEntity_trace(entity, to);
         if (trace.prop < 1.f)
                 return FALSE;
+        oldOrigin = entity->origin;
         entity->origin = to;
 
         /* Trace forward a little bit */
         to.x += entity->velocity.x > 0 ? GROUND_DIST : -GROUND_DIST;
         trace = PEntity_trace(entity, to);
-        if (trace.prop < 1.f)
+        if (trace.prop < 1.f) {
+                entity->origin = oldOrigin;
                 return FALSE;
+        }
 
         entity->origin = to;
         return TRUE;
