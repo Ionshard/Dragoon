@@ -163,8 +163,8 @@ void C_log(CLogLevel, const char *file, const char *fmt, ...);
 #define C_fade(v, u, r) C_fade_full(v, 0, 1, u, r)
 bool C_fade_full(float *value, float from, float to, bool up, float rate);
 #define C_isPow2(n) !(n & (n - 1))
-void C_limitFloat(float *, float min, float max);
-void C_limitInt(int *, int min, int max);
+void C_limit_float(float *, float min, float max);
+void C_limit_int(int *, int min, int max);
 int C_nextPow2(int);
 #define C_sign(n) ((n) < 0 ? -1 : (n) > 0)
 #define C_radToDeg(a) ((a) * 180.f / C_PI)

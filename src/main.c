@@ -146,10 +146,13 @@ int main(int argc, char *argv[])
 
                 /* Dispatch events */
                 while (SDL_PollEvent(&ev)) {
+
+                        /* In checked mode, escape quits */
                         if (ev.type == SDL_QUIT ||
                             (CHECKED && ev.type == SDL_KEYDOWN &&
                              ev.key.keysym.sym == SDLK_ESCAPE))
                                 return 0;
+
                         G_dispatch(&ev);
                 }
 

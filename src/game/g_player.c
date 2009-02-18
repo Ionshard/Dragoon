@@ -20,9 +20,6 @@
 /* Player head angle limit */
 #define HEAD_ANGLE_LIMIT (M_PI / 4)
 
-/* Player muzzle vertical offset from entity center */
-#define MUZZLE_OFFSET 4
-
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
 static bool jumpHeld;
@@ -43,27 +40,35 @@ static int playerEvent(PEntity *entity, int event, void *args)
 void G_drawPlayer(void)
 {
         CVec aim, muzzle;
+        bool mirror, mirror_changed;
 
         muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
-        muzzle.y += MUZZLE_OFFSET;
+        muzzle.y += G_MUZZLE_OFFSET;
         RSprite_center(&playerBody, playerEntity.origin, playerEntity.size);
         RSprite_center(&playerWeapon, muzzle, CVec_zero());
         RSprite_center(&playerHead, playerEntity.origin, playerEntity.size);
 
         /* Position the cursor */
-        aim = CVec_add(r_camera, g_mouse);
+        aim = CVec_add(r_cameraTo, g_mouse);
         RSprite_center(&cursor, aim, CVec_zero());
         RSprite_lookAt(&cursor, muzzle);
         RSprite_lookAt(&playerHead, aim);
         RSprite_lookAt(&playerWeapon, aim);
 
         /* Mirror the sprite */
-        playerBody.mirror = cursor.origin.x - playerBody.origin.x +
-                            playerBody.size.x / 2.f > 0;
-        playerWeapon.mirror = playerBody.mirror;
-        if (!(playerHead.mirror = playerBody.mirror)) {
+        mirror = aim.x > playerBody.origin.x + playerBody.size.x / 2.f;
+        mirror_changed = playerBody.mirror != mirror;
+        if (!(playerBody.mirror = playerHead.mirror =
+                                  playerWeapon.mirror = mirror)) {
                 playerHead.angle += M_PI;
                 playerWeapon.angle += M_PI;
+        }
+        if (mirror_changed) {
+                RSprite_center(&playerBody, playerEntity.origin,
+                               playerEntity.size);
+                RSprite_center(&playerWeapon, muzzle, CVec_zero());
+                RSprite_center(&playerHead, playerEntity.origin,
+                               playerEntity.size);
         }
 
         RSprite_draw(&playerBody);

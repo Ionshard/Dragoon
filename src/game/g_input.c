@@ -12,6 +12,9 @@
 
 #include "g_private.h"
 
+/* Minimal distance the pointer keeps from the player */
+#define CURSOR_DIST 12
+
 /* Keyboard */
 CVec g_control;
 int g_key;
@@ -19,8 +22,29 @@ bool g_shift, g_alt, g_ctrl;
 static bool leftHeld, rightHeld, upHeld, downHeld;
 
 /* Mouse */
-CVec g_mouse;
+CVec g_mouse, g_mouseRel;
 int g_button;
+
+/******************************************************************************\
+ Ensures the mouse position follows positioning rules.
+\******************************************************************************/
+static void constrainMouse(void)
+{
+        CVec center, diff;
+        float dist;
+
+        C_limit_float(&g_mouse.x, 0, r_widthScaled);
+        C_limit_float(&g_mouse.y, 0, r_heightScaled);
+        center = CVec(r_widthScaled / 2, r_heightScaled / 2);
+        center.y += G_MUZZLE_OFFSET;
+        diff = CVec_sub(g_mouse, center);
+        dist = CVec_len(diff);
+        if (!dist)
+                g_mouse = CVec(CURSOR_DIST, 0);
+        else if (dist < CURSOR_DIST)
+                g_mouse = CVec_add(center,
+                                   CVec_scalef(diff, CURSOR_DIST / dist));
+}
 
 /******************************************************************************\
  Dispatch an event from SDL.
@@ -55,7 +79,11 @@ void G_dispatch(const SDL_Event *ev)
                 break;
         case SDL_MOUSEMOTION:
                 event = GE_MOUSE_MOVE;
+                g_mouseRel = CVec_divf(CVec(ev->motion.xrel, ev->motion.yrel),
+                                       r_scale);
+                /*g_mouse = CVec_add(g_mouse, g_mouseRel);*/
                 g_mouse = CVec_divf(CVec(ev->motion.x, ev->motion.y), r_scale);
+                constrainMouse();
                 break;
         case SDL_MOUSEBUTTONDOWN:
                 event = GE_MOUSE_DOWN;

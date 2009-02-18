@@ -279,6 +279,9 @@ static bool PEntity_stepOver(PEntity *entity, PEntity *other)
                 return FALSE;
         }
 
+        /* Cut vertical velocity */
+        entity->velocity.y = 0;
+
         entity->origin = to;
         return TRUE;
 }

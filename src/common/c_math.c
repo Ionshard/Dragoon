@@ -30,7 +30,7 @@ int C_nextPow2(int n)
 /******************************************************************************\
  Convenience function to ensure a value is within a range.
 \******************************************************************************/
-void C_limitFloat(float *value, float min, float max)
+void C_limit_float(float *value, float min, float max)
 {
         if (!value)
                 return;
@@ -40,7 +40,7 @@ void C_limitFloat(float *value, float min, float max)
                 *value = max;
 }
 
-void C_limitInt(int *value, int min, int max)
+void C_limit_int(int *value, int min, int max)
 {
         if (!value)
                 return;
