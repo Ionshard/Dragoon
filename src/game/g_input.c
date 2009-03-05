@@ -13,7 +13,7 @@
 #include "g_private.h"
 
 /* Minimal distance the pointer keeps from the player */
-#define CURSOR_DIST 12
+#define CURSOR_DIST 18
 
 /* Keyboard */
 CVec g_control;

@@ -175,22 +175,29 @@ bool RSprite_init(RSprite *sprite, const char *name)
 }
 
 /******************************************************************************\
+ Pump the current animation frame.
+\******************************************************************************/
+void RSprite_animate(RSprite *sprite)
+{
+        char savedName[C_NAME_MAX];
+
+        if (!sprite || !sprite->data || !sprite->data->nextName[0] ||
+            sprite->initMsec + sprite->data->nextMsec > c_timeMsec)
+                return;
+        C_strncpy_buf(savedName, sprite->name);
+        RSprite_init(sprite, sprite->data->nextName);
+        C_strncpy_buf(sprite->name, savedName);
+}
+
+/******************************************************************************\
  Change the animation of an initialized sprite.
 \******************************************************************************/
 bool RSprite_play(RSprite *sprite, const char *name)
 {
-        if (!sprite || (sprite->data && !strcmp(name, sprite->name))) {
-
-                /* Pump animation frame */
-                if (sprite->data->nextName[0] &&
-                    sprite->initMsec + sprite->data->nextMsec <= c_timeMsec) {
-                        char savedName[C_NAME_MAX];
-
-                        C_strncpy_buf(savedName, sprite->name);
-                        RSprite_init(sprite, sprite->data->nextName);
-                        C_strncpy_buf(sprite->name, savedName);
-                }
-
+        if (!sprite || !sprite->data)
+                return FALSE;
+        if (!strcmp(name, sprite->name)) {
+                RSprite_animate(sprite);
                 return TRUE;
         }
         return RSprite_init(sprite, name);

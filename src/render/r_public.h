@@ -96,6 +96,7 @@ extern bool r_clear, r_fullscreen;
 void R_cleanupSprites(void);
 void R_cleanupTextures(void);
 void R_parseSpriteCfg(const char *filename);
+void RSprite_animate(RSprite *);
 bool RSprite_init(RSprite *, const char *name);
 void RSprite_center(RSprite *, CVec origin, CVec size);
 void RSprite_draw(const RSprite *);

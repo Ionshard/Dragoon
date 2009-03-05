@@ -40,36 +40,34 @@ static int playerEvent(PEntity *entity, int event, void *args)
 void G_drawPlayer(void)
 {
         CVec aim, muzzle;
-        bool mirror, mirror_changed;
+        bool mirror;
 
+        aim = CVec_add(r_cameraTo, g_mouse);
+        mirror = aim.x > playerEntity.origin.x + playerEntity.size.x / 2.f;
         muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
         muzzle.y += G_MUZZLE_OFFSET;
+        RSprite_animate(&playerWeapon);
         RSprite_center(&playerBody, playerEntity.origin, playerEntity.size);
         RSprite_center(&playerWeapon, muzzle, CVec_zero());
         RSprite_center(&playerHead, playerEntity.origin, playerEntity.size);
 
         /* Position the cursor */
-        aim = CVec_add(r_cameraTo, g_mouse);
         RSprite_center(&cursor, aim, CVec_zero());
         RSprite_lookAt(&cursor, muzzle);
         RSprite_lookAt(&playerHead, aim);
         RSprite_lookAt(&playerWeapon, aim);
 
         /* Mirror the sprite */
-        mirror = aim.x > playerBody.origin.x + playerBody.size.x / 2.f;
-        mirror_changed = playerBody.mirror != mirror;
         if (!(playerBody.mirror = playerHead.mirror =
                                   playerWeapon.mirror = mirror)) {
                 playerHead.angle += M_PI;
                 playerWeapon.angle += M_PI;
         }
-        if (mirror_changed) {
-                RSprite_center(&playerBody, playerEntity.origin,
-                               playerEntity.size);
-                RSprite_center(&playerWeapon, muzzle, CVec_zero());
-                RSprite_center(&playerHead, playerEntity.origin,
-                               playerEntity.size);
-        }
+        RSprite_center(&playerBody, playerEntity.origin,
+                       playerEntity.size);
+        RSprite_center(&playerWeapon, muzzle, CVec_zero());
+        RSprite_center(&playerHead, playerEntity.origin,
+                       playerEntity.size);
 
         RSprite_draw(&playerBody);
         RSprite_draw(&playerHead);
@@ -134,6 +132,14 @@ void G_updatePlayer(void)
 \******************************************************************************/
 bool G_dispatch_player(GEvent event)
 {
+        /* Swing sword */
+        if (g_button == SDL_BUTTON_LEFT) {
+                if (event == GE_MOUSE_DOWN)
+                        RSprite_play(&playerWeapon, "sword");
+                if (event == GE_MOUSE_UP)
+                        RSprite_play(&playerWeapon, "repelCannon");
+        }
+
         /* Update controls */
         if (!G_controlEvent(event))
                 return FALSE;
@@ -158,7 +164,7 @@ void G_spawnPlayer(CVec origin)
         playerEntity.eventFunc = (PEventFunc)playerEvent;
         playerEntity.impactOther = PIT_ENTITY;
         playerEntity.manualUpdate = TRUE;
-        playerEntity.stepSize = 16;
+        playerEntity.stepSize = 8;
         PEntity_spawn(&playerEntity, "Player");
 }
 
