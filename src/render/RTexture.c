@@ -95,6 +95,7 @@ RTexture *RTexture_load(const char *filename)
         if (texture->surface)
                 return texture;
         texture->surface = R_loadSurface(filename);
+        R_deseamSurface(texture->surface);
 
         /* Load the texture into OpenGL */
         if (texture->surface) {

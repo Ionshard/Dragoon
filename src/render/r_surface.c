@@ -389,3 +389,54 @@ cleanup:
         return success;
 }
 
+/******************************************************************************\
+ Scan a texture and color in transparent pixel colors with the average of their
+ neighbors to prevent seam glitches during rotation.
+\******************************************************************************/
+void R_deseamSurface(SDL_Surface *surf)
+{
+        CColor color, sum;
+        int x, y;
+
+        if (!surf)
+                return;
+        if (SDL_LockSurface(surf) < 0) {
+                C_warning("Failed to lock surface");
+                return;
+        }
+        for (y = 0; y < surf->h; y++)
+                for (x = 0; x < surf->w; x++) {
+                        color = R_getPixel(surf, x, y);
+                        if (color.a > 0)
+                                continue;
+                        sum = CColor_black();
+                        if (x > 0) {
+                                color = R_getPixel(surf, x - 1, y);
+                                color = CColor_scalef(color, color.a);
+                                sum = CColor_add(sum, color);
+
+                        }
+                        if (y > 0) {
+                                color = R_getPixel(surf, x, y - 1);
+                                color = CColor_scalef(color, color.a);
+                                sum = CColor_add(sum, color);
+                        }
+                        if (x < surf->w - 1) {
+                                color = R_getPixel(surf, x + 1, y);
+                                color = CColor_scalef(color, color.a);
+                                sum = CColor_add(sum, color);
+                        }
+                        if (y < surf->h - 1) {
+                                color = R_getPixel(surf, x, y + 1);
+                                color = CColor_scalef(color, color.a);
+                                sum = CColor_add(sum, color);
+                        }
+                        if (sum.a <= 0)
+                                continue;
+                        sum = CColor_divf(sum, sum.a);
+                        sum.a = 0;
+                        R_putPixel(surf, x, y, sum);
+                }
+        SDL_UnlockSurface(surf);
+}
+

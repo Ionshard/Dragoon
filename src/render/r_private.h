@@ -55,6 +55,7 @@ extern bool r_cameraOn;
 
 /* r_surface.c */
 SDL_Surface *R_allocSurface(int width, int height);
+void R_deseamSurface(SDL_Surface *);
 void R_freeSurface(SDL_Surface *);
 CColor R_getPixel(const SDL_Surface *, int x, int y);
 void R_putPixel(SDL_Surface *, int x, int y, CColor);
