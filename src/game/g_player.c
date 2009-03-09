@@ -20,8 +20,13 @@
 /* Player head angle limit */
 #define HEAD_ANGLE_LIMIT (M_PI / 4)
 
+/* Weapon delays */
+#define CANNON_DELAY 1000
+
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
+static CVec aim, muzzle;
+static int fireDelay;
 static bool jumpHeld;
 
 /******************************************************************************\
@@ -39,14 +44,9 @@ static int playerEvent(PEntity *entity, int event, void *args)
 \******************************************************************************/
 void G_drawPlayer(void)
 {
-        CVec aim, muzzle;
         bool mirror;
 
-        aim = CVec_add(r_cameraTo, g_mouse);
         mirror = aim.x > playerEntity.origin.x + playerEntity.size.x / 2.f;
-        muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
-        muzzle.y += G_MUZZLE_OFFSET;
-        RSprite_animate(&playerWeapon);
         RSprite_center(&playerBody, playerEntity.origin, playerEntity.size);
         RSprite_center(&playerWeapon, muzzle, CVec_zero());
         RSprite_center(&playerHead, playerEntity.origin, playerEntity.size);
@@ -85,6 +85,10 @@ void G_updatePlayer(void)
 
         if (!CLink_linked(&playerEntity.linkAll))
                 return;
+
+        /* Fire wait time */
+        if ((fireDelay -= p_frameMsec) < 0)
+                fireDelay = 0;
 
         /* Horizontal movement */
         accelX = 0;
@@ -125,6 +129,11 @@ void G_updatePlayer(void)
                               CVec_divf(playerEntity.size, 2));
         r_cameraTo.x -= r_widthScaled / 2;
         r_cameraTo.y -= r_heightScaled / 2;
+
+        /* Weapon muzzle */
+        muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
+        muzzle.y += G_MUZZLE_OFFSET;
+        aim = CVec_add(r_cameraTo, g_mouse);
 }
 
 /******************************************************************************\
@@ -139,6 +148,14 @@ bool G_dispatch_player(GEvent event)
                 if (event == GE_MOUSE_UP)
                         RSprite_play(&playerWeapon, "repelCannon");
         }
+
+        /* Fire cannon */
+        else if (event == GE_MOUSE_DOWN && g_button == SDL_BUTTON_RIGHT &&
+                 fireDelay <= 0) {
+                G_fireMissile(&playerEntity, muzzle, aim, 3);
+                fireDelay += CANNON_DELAY;
+        }
+
 
         /* Update controls */
         if (!G_controlEvent(event))
@@ -166,5 +183,6 @@ void G_spawnPlayer(CVec origin)
         playerEntity.manualUpdate = TRUE;
         playerEntity.stepSize = 8;
         PEntity_spawn(&playerEntity, "Player");
+        PEntity_impact(&playerEntity, PIT_ENTITY);
 }
 

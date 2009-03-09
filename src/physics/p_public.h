@@ -25,6 +25,10 @@ typedef enum {
            will prevent the collision */
         PE_IMPACT,
 
+        /* Event sent out before and after physics are updated */
+        PE_PHYSICS,
+        PE_PHYSICS_DONE,
+
         /* The entity should render itself and update game mechanics */
         PE_UPDATE,
 
@@ -52,7 +56,7 @@ typedef struct PEntity {
         CVec origin, size, velocity, accel;
         float mass, friction, drag, elasticity, lagSec, stepSize;
         int frameSkip;
-        bool dead, manualUpdate;
+        bool dead, manualUpdate, ignore, fly;
         void *data, *entityClass;
 } PEntity;
 
@@ -77,23 +81,27 @@ int P_entsInBox(CVec origin, CVec size, PImpactType,
 #define P_entsInBox_buf(o, s, t, b) \
         P_entsInBox(o, s, t, b, sizeof (b) / sizeof (*(b)))
 
-/* p_entity.c */
+/* PEntity.c */
 void PEntity_cleanup(PEntity *);
 int PEntity_event(PEntity *, int event, void *args);
 void PEntity_impact(PEntity *, PImpactType);
 void PEntity_kill(PEntity *);
 void PEntity_spawn(PEntity *, const char *className);
-PTrace PEntity_trace(const PEntity *, CVec to);
+PTrace PEntity_trace(PEntity *, CVec to);
 void PEntity_update(PEntity *);
 void P_cleanupEntities(void);
 void P_updateEntities(void);
 
 extern CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 extern CCount p_countEntities;
-extern float p_speed;
+extern float p_frameSec, p_speed;
+extern int p_timeMsec, p_frameMsec;
 
 /* PTrace.c */
-#define PTrace(a, b, c, d, e) PTrace_box(a, b, c, d, e)
-PTrace PTrace_box(CVec from, CVec to, CVec size,
-                  PImpactType, const void *ignore);
+#define PTrace(a, b, c, d) PTrace_box(a, b, c, d)
+PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType);
+#define PTrace_line(from, to, type) PTrace_box(from, to, CVec(1, 1), type)
+
+/* p_push.c */
+void P_pushRadius(CVec origin, PImpactType, float speed, float dist_max);
 

@@ -132,6 +132,7 @@ char *C_readString(FILE *, int *length);
 const char *C_token(FILE *);
 #define C_token_int(f) atoi(C_token(f))
 #define C_token_float(f) atof(C_token(f))
+CVec C_token_vec(FILE *);
 
 /* CLink.c */
 void CLink_add(CLink *, CLink **root, void *data);

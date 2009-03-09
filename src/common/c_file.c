@@ -125,6 +125,18 @@ const char *C_token(FILE *file)
 }
 
 /******************************************************************************\
+ Returns a vector
+\******************************************************************************/
+CVec C_token_vec(FILE *file)
+{
+        CVec v;
+
+        v.x = C_token_float(file);
+        v.y = C_token_float(file);
+        return v;
+}
+
+/******************************************************************************\
  Read a NUL-terminated string from a binary file.
 \******************************************************************************/
 char *C_readString(FILE *file, int *plen)

@@ -33,6 +33,7 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
 
         /* Defaults */
         data->modulate = CColor_white();
+        data->scale = CVec(1, 1);
 
         for (token = C_token(file); token[0]; token = C_token(file))
 
@@ -64,18 +65,15 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
 
                 /* Bounding box */
                 else if (!strcasecmp(token, "box") && C_openBrace(file)) {
-                        data->boxOrigin.x = C_token_int(file);
-                        data->boxOrigin.y = C_token_int(file);
-                        data->boxSize.x = C_token_int(file);
-                        data->boxSize.y = C_token_int(file);
+                        data->boxOrigin = C_token_vec(file);
+                        data->boxSize = C_token_vec(file);
                         C_closeBrace(file);
                         haveBox = TRUE;
                 }
 
                 /* Box center */
                 else if (!strcasecmp(token, "center") && C_openBrace(file)) {
-                        data->center.x = C_token_int(file);
-                        data->center.y = C_token_int(file);
+                        data->center = C_token_vec(file);
                         C_closeBrace(file);
                         haveCenter = TRUE;
                 }
@@ -84,6 +82,12 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
                 else if (!strcasecmp(token, "next") && C_openBrace(file)) {
                         C_strncpy_buf(data->nextName, C_token(file));
                         data->nextMsec = C_token_int(file);
+                        C_closeBrace(file);
+                }
+
+                /* Scale factor */
+                else if (!strcasecmp(token, "scale") && C_openBrace(file)) {
+                        data->scale = C_token_vec(file);
                         C_closeBrace(file);
                 }
 
@@ -167,7 +171,7 @@ bool RSprite_init(RSprite *sprite, const char *name)
                 return FALSE;
         }
         sprite->data = data;
-        sprite->size = data->boxSize;
+        sprite->size = CVec_scale(data->boxSize, data->scale);
         sprite->modulate = CColor_white();
         sprite->initMsec = c_timeMsec;
         C_strncpy_buf(sprite->name, name);
@@ -177,16 +181,23 @@ bool RSprite_init(RSprite *sprite, const char *name)
 /******************************************************************************\
  Pump the current animation frame.
 \******************************************************************************/
-void RSprite_animate(RSprite *sprite)
+static void RSprite_animate(RSprite *sprite)
 {
-        char savedName[C_NAME_MAX];
+        RSpriteData *data;
+        CVec center;
 
         if (!sprite || !sprite->data || !sprite->data->nextName[0] ||
             sprite->initMsec + sprite->data->nextMsec > c_timeMsec)
                 return;
-        C_strncpy_buf(savedName, sprite->name);
-        RSprite_init(sprite, sprite->data->nextName);
-        C_strncpy_buf(sprite->name, savedName);
+        if (!(data = CNamed_get(dataRoot, sprite->data->nextName))) {
+                C_warning("Sprite '%s' not loaded", sprite->data->nextName);
+                return;
+        }
+        center = CVec_add(sprite->origin, sprite->data->center);
+        sprite->data = data;
+        sprite->size = CVec_scale(data->boxSize, data->scale);
+        sprite->initMsec = c_timeMsec;
+        RSprite_center(sprite, center, CVec_zero());
 }
 
 /******************************************************************************\
@@ -196,10 +207,8 @@ bool RSprite_play(RSprite *sprite, const char *name)
 {
         if (!sprite || !sprite->data)
                 return FALSE;
-        if (!strcmp(name, sprite->name)) {
-                RSprite_animate(sprite);
+        if (!strcmp(name, sprite->name))
                 return TRUE;
-        }
         return RSprite_init(sprite, name);
 }
 
@@ -222,7 +231,7 @@ CVec RSprite_getCenter(const RSprite *sprite)
 /******************************************************************************\
  Draw a sprite on screen.
 \******************************************************************************/
-void RSprite_draw(const RSprite *sprite)
+void RSprite_draw(RSprite *sprite)
 {
         const RSpriteData *data;
         RVertex verts[4];
@@ -304,6 +313,9 @@ void RSprite_draw(const RSprite *sprite)
         /* Cleanup */
         glPopMatrix();
         R_checkErrors();
+
+        /* Pump animation */
+        RSprite_animate(sprite);
 }
 
 /******************************************************************************\

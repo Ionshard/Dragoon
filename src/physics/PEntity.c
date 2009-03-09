@@ -32,8 +32,8 @@ CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 float p_gravity = 500.f;
 
 /* Physics time elapsed this frame (may be less than real time) */
-int p_timeMsec, p_frameMsec;
 float p_frameSec, p_speed = 1.f;
+int p_timeMsec, p_frameMsec;
 
 /* Entity counters */
 CCount p_countEntities;
@@ -42,7 +42,7 @@ static int numEntities;
 /******************************************************************************\
  Free memory used by dead entities.
 \******************************************************************************/
-static void freeDead(void)
+static void freeDead(bool force)
 {
         PEntity *entity;
         CLink *link;
@@ -50,7 +50,7 @@ static void freeDead(void)
         for (link = p_linkAll; link; ) {
                 entity = CLink_get(link);
                 link = CLink_next(link);
-                if (!entity->dead)
+                if (!force && (!entity->dead || --entity->dead))
                         continue;
 
                 /* Can only remove from linked lists safely from here */
@@ -73,7 +73,7 @@ void P_cleanupEntities(void)
 
         for (link = p_linkAll; link; link = CLink_next(link))
                 PEntity_kill(CLink_get(link));
-        freeDead();
+        freeDead(TRUE);
 }
 
 /******************************************************************************\
@@ -102,7 +102,7 @@ void PEntity_spawn(PEntity *entity, const char *className)
 {
         if (!entity)
                 return;
-        entity->dead = FALSE;
+        entity->dead = 0;
         C_snprintf_buf(entity->name, "#%d (%s)", ++numEntities, className);
         CLink_add_rear(&entity->linkAll, &p_linkAll, entity);
 }
@@ -128,7 +128,7 @@ void PEntity_cleanup(PEntity *entity)
         CLink *link;
 
         /* Flag for removal */
-        entity->dead = TRUE;
+        entity->dead = 2;
 
         /* This entity can't be any others' ground entity anymore */
         for (link = p_linkEntity; link; link = CLink_next(link)) {
@@ -152,10 +152,14 @@ void PEntity_kill(PEntity *entity)
 /******************************************************************************\
  Run a trace using the entity's box.
 \******************************************************************************/
-PTrace PEntity_trace(const PEntity *entity, CVec to)
+PTrace PEntity_trace(PEntity *entity, CVec to)
 {
-        return PTrace(entity->origin, to, entity->size, entity->impactOther,
-                      entity->data ? entity->data : entity);
+        PTrace trace;
+
+        entity->ignore = TRUE;
+        trace = PTrace(entity->origin, to, entity->size, entity->impactOther);
+        entity->ignore = FALSE;
+        return trace;
 }
 
 /******************************************************************************\
@@ -375,7 +379,8 @@ static void PEntity_physics(PEntity *entity, float delT)
         entity->lagSec = 0.f;
 
         /* Add gravity */
-        entity->accel.y += p_gravity;
+        if (!entity->fly)
+                entity->accel.y += p_gravity;
 
         /* Clip acceleration to make sure we move this frame */
         PEntity_clipAccel(entity);
@@ -417,8 +422,22 @@ static void PEntity_physics(PEntity *entity, float delT)
         trace = PEntity_trace(entity, to);
         entity->origin = trace.position;
 
-        /* Entity started out stuck in something, skip it this frame */
+        /* Entity started out stuck in something */
         if (trace.startSolid) {
+                PEventImpact impactEvent;
+
+                /* Generate an impact event */
+                impactEvent.other = trace.impactEntity;
+                impactEvent.dir = CVec_sub(entity->origin,
+                                           trace.impactEntity->origin);
+                impactEvent.dir = CVec_norm(impactEvent.dir);
+                impactEvent.impulse = 0;
+                PEntity_event(entity, PE_IMPACT, &impactEvent);
+                impactEvent.other = entity;
+                impactEvent.dir = CVec_scalef(impactEvent.dir, -1.f);
+                PEntity_event(trace.impactEntity, PE_IMPACT, &impactEvent);
+
+                /* Unstick the entity and skip it */
                 PEntity_unstick(entity, trace.impactEntity);
                 entity->lagSec = delT;
                 entity->velocity = lastV;
@@ -490,8 +509,13 @@ static void PEntity_physics(PEntity *entity, float delT)
 \******************************************************************************/
 void PEntity_update(PEntity *entity)
 {
+        if (entity->dead)
+                return;
+
         /* Update entity physics */
+        PEntity_event(entity, PE_PHYSICS, NULL);
         PEntity_physics(entity, p_frameSec);
+        PEntity_event(entity, PE_PHYSICS_DONE, NULL);
 
         /* Acceleration vector is reset every frame */
         entity->accel = CVec_zero();
@@ -531,6 +555,6 @@ void P_updateEntities(void)
         }
 
         /* Remove any entities that died this frame */
-        freeDead();
+        freeDead(FALSE);
 }
 

@@ -92,6 +92,9 @@ void G_hideMenu(void);
 
 extern bool g_limbo;
 
+/* GMissile.c */
+void G_fireMissile(PEntity *parent, CVec from, CVec to, int size);
+
 /* g_player.c */
 bool G_dispatch_player(GEvent);
 void G_drawPlayer(void);

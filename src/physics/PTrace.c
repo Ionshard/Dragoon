@@ -16,8 +16,7 @@
  Trace a box through the world. Returns the proportion of the path
  that is traceable. Any of the output argument pointers may be NULL.
 \******************************************************************************/
-PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType,
-                  const void *ignore)
+PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType)
 {
         PTrace trace;
         CLink *link;
@@ -76,8 +75,7 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType,
                 C_assert(other != NULL);
 
                 /* Skip this entity */
-                if ((ignore && (other == ignore || other->data == ignore)) ||
-                    other->dead)
+                if (other->ignore || other->dead)
                         continue;
 
                 /* Must intersect bounding box */

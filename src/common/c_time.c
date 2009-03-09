@@ -57,7 +57,7 @@ void C_updateTime(void)
         c_frame++;
 
         /* Report when a frame takes an unusually long time */
-        if (c_frameMsec > 500)
+        if (c_frameMsec >= 100)
                 C_debug("Frame %d lagged, %d msec", c_frame, c_frameMsec);
 }
 
