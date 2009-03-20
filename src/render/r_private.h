@@ -28,17 +28,17 @@ typedef struct RTexture {
         CVec scaleUV, pow2Size;
         SDL_Surface *surface;
         GLuint glName;
-        bool upScale;
+        bool upScale, tile;
 } RTexture;
 
 /* Sprite data object */
 typedef struct RSpriteData {
         CNamed named;
-        RTexture *texture;
+        RTexture *texture, *tiled;
         CColor modulate;
         CVec boxOrigin, boxSize, center, scale;
         int nextMsec;
-        bool additive, flip, mirror;
+        bool additive, flip, mirror, tile;
         char nextName[C_NAME_MAX];
 } RSpriteData;
 
@@ -69,7 +69,9 @@ extern int r_videoMem, r_videoMemMax;
 
 /* RTexture.c */
 void RTexture_cleanup(RTexture *);
-#define RTexture_deselect(t) RTexture_select(NULL, FALSE, FALSE)
+void RTexture_free(RTexture *);
+#define RTexture_deselect() RTexture_select(NULL, FALSE, FALSE)
+RTexture *RTexture_extract(const RTexture *, int x, int y, int w, int h);
 RTexture *RTexture_load(const char *filename);
 void RTexture_select(RTexture *, bool smooth, bool additive);
 #define RTexture_size(t) \

@@ -16,6 +16,14 @@
 static CNamed *dataRoot;
 
 /******************************************************************************\
+ Cleanup sprite data.
+\******************************************************************************/
+static void RSpriteData_cleanup(RSpriteData *data)
+{
+        RTexture_free(data->tiled);
+}
+
+/******************************************************************************\
  Cleanup sprite database.
 \******************************************************************************/
 void R_cleanupSprites(void)
@@ -63,6 +71,10 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
                 else if (!strcasecmp(token, "mirror"))
                         data->mirror = TRUE;
 
+                /* Tiling */
+                else if (!strcasecmp(token, "tile"))
+                        data->tile = TRUE;
+
                 /* Bounding box */
                 else if (!strcasecmp(token, "box") && C_openBrace(file)) {
                         data->boxOrigin = C_token_vec(file);
@@ -99,6 +111,13 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
                 data->boxSize = RTexture_size(data->texture);
         if (!haveCenter)
                 data->center = CVec_divf(data->boxSize, 2.f);
+
+        /* Create tiled subtexture */
+        if (data->tile)
+                data->tiled = RTexture_extract(data->texture, data->boxOrigin.x,
+                                               data->boxOrigin.y,
+                                               data->boxSize.x,
+                                               data->boxSize.y);
 }
 
 /******************************************************************************\
@@ -135,8 +154,9 @@ void R_parseSpriteCfg(const char *filename)
                 }
 
                 /* Parse sprite section */
-                if ((data = CNamed_alloc(&dataRoot, token,
-                                         sizeof (RSpriteData), NULL, FALSE)))
+                data = CNamed_alloc(&dataRoot, token, sizeof (RSpriteData),
+                                    (CCallback)RSpriteData_cleanup, FALSE);
+                if (data)
                         parseSpriteSection(file, data);
                 else
                         C_warning("Sprite '%s' already defined", token);
@@ -234,6 +254,7 @@ CVec RSprite_getCenter(const RSprite *sprite)
 void RSprite_draw(RSprite *sprite)
 {
         const RSpriteData *data;
+        RTexture *texture;
         RVertex verts[4];
         CColor modulate;
         CVec surfaceSize, center;
@@ -270,7 +291,8 @@ void RSprite_draw(RSprite *sprite)
                  flip ? -sprite->size.y : sprite->size.y, 0);
 
         /* Bind texture */
-        RTexture_select(data->texture, smooth, data->additive);
+        texture = data->tile ? data->tiled : data->texture;
+        RTexture_select(texture, smooth, data->additive);
 
         /* Additive blending */
         if (data->additive) {
@@ -288,23 +310,33 @@ void RSprite_draw(RSprite *sprite)
         modulate = CColor_scale(sprite->modulate, data->modulate);
         glColor4f(modulate.r, modulate.g, modulate.b, modulate.a);
 
-        /* Render textured quad */
-        surfaceSize = RTexture_size(data->texture);
+        /* Setup textured quad vertex positions */
+        surfaceSize = RTexture_size(texture);
         verts[0].co = CVec_xy(-0.5f, -0.5f);
-        verts[0].uv = CVec_div(data->boxOrigin, surfaceSize);
         verts[0].z = 0.f;
         verts[2].co = CVec_xy(0.5f, 0.5f);
-        verts[2].uv = CVec_div(CVec_add(data->boxOrigin, data->boxSize),
-                               surfaceSize);
         verts[2].z = 0.f;
         verts[1].co = CVec_xy(-0.5f, 0.5f);
-        verts[1].uv.x = verts[0].uv.x;
-        verts[1].uv.y = verts[2].uv.y;
         verts[1].z = 0.f;
         verts[3].co = CVec_xy(0.5f, -0.5f);
+        verts[3].z = 0.f;
+
+        /* Setup vertex UV coordinates */
+        if (data->tile) {
+                verts[0].uv = CVec_div(sprite->origin, surfaceSize);
+                verts[2].uv = CVec_div(CVec_add(sprite->origin, sprite->size),
+                                       surfaceSize);
+        } else {
+                verts[0].uv = CVec_div(data->boxOrigin, surfaceSize);
+                verts[2].uv = CVec_div(CVec_add(data->boxOrigin, data->boxSize),
+                                       surfaceSize);
+        }
+        verts[1].uv.x = verts[0].uv.x;
+        verts[1].uv.y = verts[2].uv.y;
         verts[3].uv.x = verts[2].uv.x;
         verts[3].uv.y = verts[0].uv.y;
-        verts[3].z = 0.f;
+
+        /* Render textured quad */
         if (CHECKED)
                 CCount_add(&r_countFaces, 2);
         glInterleavedArrays(RV_FORMAT, 0, verts);

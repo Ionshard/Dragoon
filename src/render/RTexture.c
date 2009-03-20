@@ -19,9 +19,20 @@ static CNamed *textureRoot;
 \******************************************************************************/
 void RTexture_cleanup(RTexture *texture)
 {
+        if (!texture)
+                return;
         R_freeSurface(texture->surface);
         if (texture->glName)
                 glDeleteTextures(1, &texture->glName);
+}
+
+/******************************************************************************\
+ Free a texture object.
+\******************************************************************************/
+void RTexture_free(RTexture *texture)
+{
+        if (texture)
+                CNamed_free(&texture->named);
 }
 
 /******************************************************************************\
@@ -61,12 +72,21 @@ void RTexture_upload(RTexture *pt)
         /* No scaling requested */
         else {
                 realSize = CVec(pt->surface->w, pt->surface->h);
-                rect.x = 1;
-                rect.y = 1;
+                rect.x = 0;
+                rect.y = 0;
                 rect.w = realSize.x;
                 rect.h = realSize.y;
-                pt->pow2Size = CVec_xy(C_nextPow2(realSize.x + 2),
-                                       C_nextPow2(realSize.y + 2));
+
+                /* Leave one pixel border for non-tiled textures */
+                if (!pt->tile) {
+                        rect.x = 1;
+                        rect.y = 1;
+                        pt->pow2Size = CVec_xy(C_nextPow2(realSize.x + 2),
+                                               C_nextPow2(realSize.y + 2));
+                } else
+                        pt->pow2Size = CVec_xy(C_nextPow2(realSize.x),
+                                               C_nextPow2(realSize.y));
+
                 pow2Surface = R_allocSurface(pt->pow2Size.x, pt->pow2Size.y);
                 SDL_BlitSurface(pt->surface, NULL, pow2Surface, &rect);
                 pt->scaleUV = CVec_div(realSize, pt->pow2Size);
@@ -76,6 +96,10 @@ void RTexture_upload(RTexture *pt)
         glBindTexture(GL_TEXTURE_2D, pt->glName);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pow2Surface->w, pow2Surface->h,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, pow2Surface->pixels);
+
+        /* Repeat wrapping (not supported for NPOT textures) */
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         /* Free the temporary surface */
         R_freeSurface(pow2Surface);
@@ -107,6 +131,40 @@ RTexture *RTexture_load(const char *filename)
 }
 
 /******************************************************************************\
+ Cuts a tilable chunk out of an already loaded texture. The returned texture
+ must be manually freed.
+\******************************************************************************/
+RTexture *RTexture_extract(const RTexture *src, int x, int y, int w, int h)
+{
+        RTexture *dest;
+        SDL_Rect rect;
+
+        if (!src || !src->surface)
+                return NULL;
+
+        /* Allocate a new surface and copy the portion of the old surface
+           onto it */
+        C_new(&dest);
+        dest->named.cleanupFunc = (CCallback)RTexture_cleanup;
+        dest->surface = R_allocSurface(w, h);
+        dest->tile = TRUE;
+        rect.x = x;
+        rect.y = y;
+        rect.w = w;
+        rect.h = h;
+        SDL_BlitSurface(src->surface, &rect, dest->surface, NULL);
+        R_deseamSurface(dest->surface);
+
+        /* Load the texture into OpenGL */
+        if (dest->surface) {
+                glGenTextures(1, &dest->glName);
+                RTexture_upload(dest);
+                R_checkErrors();
+        }
+        return dest;
+}
+
+/******************************************************************************\
  Selects (binds) a texture for rendering in OpenGL. Also sets whatever options
  are necessary to get the texture to show up properly.
 \******************************************************************************/
@@ -132,10 +190,6 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, texture->glName);
 
-        /* Repeat wrapping (not supported for NPOT textures) */
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
         /* Scale filters */
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
@@ -145,7 +199,9 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
            require a texture coordinate transformation */
         glMatrixMode(GL_TEXTURE);
         glLoadIdentity();
-        glTranslatef(1.f / texture->pow2Size.x, 1.f / texture->pow2Size.y, 0.f);
+        if (!texture->tile)
+                glTranslatef(1.f / texture->pow2Size.x,
+                             1.f / texture->pow2Size.y, 0.f);
         glScalef(texture->scaleUV.x, texture->scaleUV.y, 1.f);
         glMatrixMode(GL_MODELVIEW);
 

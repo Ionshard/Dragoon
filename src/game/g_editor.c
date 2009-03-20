@@ -178,8 +178,17 @@ bool G_dispatch_editor(GEvent event)
 
         /* Select an entity class to place using keys */
         if (event == GE_KEY_DOWN) {
-                if (!selectEntity(g_key))
+
+                /* PgDn/Up changes list order of current entity */
+                if (g_key == SDLK_PAGEUP)
+                        G_pushBackEntity(editEntity);
+                else if (g_key == SDLK_PAGEDOWN)
+                        G_pushForwardEntity(editEntity);
+
+                /* All other keys can be used to select an entity */
+                else if (!selectEntity(g_key))
                         G_controlEvent(event);
+
                 return TRUE;
         }
 
@@ -189,6 +198,7 @@ bool G_dispatch_editor(GEvent event)
                 return TRUE;
         }
 
+        /* Mouse clicks */
         else if (event == GE_MOUSE_DOWN) {
 
                 /* Left-click to place */

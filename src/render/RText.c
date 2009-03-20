@@ -63,7 +63,7 @@ void RText_draw(RText *text)
 
         /* Draw letters */
         glMatrixMode(GL_MODELVIEW);
-        seed = C_randDet((int)text);
+        seed = C_randDet((int)(size_t)text);
         explodeNorm = text->explode.x || text->explode.y ?
                       sqrtf(CVec_len(text->explode)) : 0;
         for (i = 0; text->string[i]; i++) {

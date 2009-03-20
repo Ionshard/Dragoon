@@ -133,7 +133,7 @@ PEntity *G_spawn(const char *className, const GSpawnParams *params)
 
                 other = CLink_get(CLink_prev(&entity->linkAll));
                 otherClass = (GEntityClass *)other->entityClass;
-                if (otherClass->z <= entityClass->z)
+                if (otherClass && otherClass->z <= entityClass->z)
                         break;
                 CLink_forward(&entity->linkAll);
         }

@@ -17,11 +17,11 @@
 #define GROUND_A 800
 #define AIR_MOVE 0.2
 
-/* Player head angle limit */
-#define HEAD_ANGLE_LIMIT (M_PI / 4)
-
 /* Weapon delays */
-#define CANNON_DELAY 1000
+#define CANNON_DELAY 500
+
+/* Minimal distance the pointer keeps from the player */
+#define CURSOR_DIST 18
 
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
@@ -73,6 +73,25 @@ void G_drawPlayer(void)
         RSprite_draw(&playerHead);
         RSprite_draw(&playerWeapon);
         RSprite_draw(&cursor);
+}
+
+/******************************************************************************\
+ Ensures the mouse position follows positioning rules.
+\******************************************************************************/
+static CVec constrainedMouse(void)
+{
+        CVec center, diff;
+        float dist;
+
+        center = CVec(r_widthScaled / 2, r_heightScaled / 2);
+        center.y += G_MUZZLE_OFFSET;
+        diff = CVec_sub(g_mouse, center);
+        dist = CVec_len(diff);
+        if (!dist)
+                return CVec(CURSOR_DIST, 0);
+        else if (dist < CURSOR_DIST)
+                return CVec_add(center, CVec_scalef(diff, CURSOR_DIST / dist));
+        return g_mouse;
 }
 
 /******************************************************************************\
@@ -133,7 +152,7 @@ void G_updatePlayer(void)
         /* Weapon muzzle */
         muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
         muzzle.y += G_MUZZLE_OFFSET;
-        aim = CVec_add(r_cameraTo, g_mouse);
+        aim = CVec_add(r_cameraTo, constrainedMouse());
 }
 
 /******************************************************************************\
@@ -141,6 +160,9 @@ void G_updatePlayer(void)
 \******************************************************************************/
 bool G_dispatch_player(GEvent event)
 {
+        if (!CLink_linked(&playerEntity.linkAll))
+                return FALSE;
+
         /* Swing sword */
         if (g_button == SDL_BUTTON_LEFT) {
                 if (event == GE_MOUSE_DOWN)
@@ -152,6 +174,7 @@ bool G_dispatch_player(GEvent event)
         /* Fire cannon */
         else if (event == GE_MOUSE_DOWN && g_button == SDL_BUTTON_RIGHT &&
                  fireDelay <= 0) {
+                RSprite_play(&playerWeapon, "repelCannon");
                 G_fireMissile(&playerEntity, muzzle, aim, 3);
                 fireDelay += CANNON_DELAY;
         }
