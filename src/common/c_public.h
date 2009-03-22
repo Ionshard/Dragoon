@@ -120,6 +120,26 @@ typedef struct CLink {
         struct CLink *prev, *next, **root;
 } CLink;
 
+/* Resizable arrays */
+typedef struct {
+        int cap, len, size;
+        void *data;
+} CArray;
+
+/* CArray.c */
+int CArray_append(CArray *, void *item);
+void CArray_cleanup(CArray *);
+#define CArray_get(a, t, i) (*CArray_p(a, t, i))
+void CArray_init(CArray *, size_t itemSize, int cap);
+void CArray_insert(CArray *, int index, void *item);
+void CArray_remove(CArray *, int index);
+void CArray_reserve(CArray *, int n);
+#define CArray_p(a, t, i) (((t *)(a)->data) + i)
+#define CArray_set(a, t, i, value) (CArray_get(a, t, i) = value)
+void CArray_set_copy(CArray *, int index, void *item);
+void *CArray_steal(CArray *);
+void CArray_sort(CArray *, int (*compare)(const void *, const void *));
+
 /* c_file.c */
 void C_closeBrace(FILE *);
 FILE *C_fopen_full(const char *func, const char *filename, bool write);
@@ -170,6 +190,7 @@ int C_nextPow2(int);
 #define C_sign(n) ((n) < 0 ? -1 : (n) > 0)
 #define C_radToDeg(a) ((a) * 180.f / C_PI)
 #define C_rand() ((float)rand() / RAND_MAX)
+#define C_rand_c() (2 * C_rand() - 1)
 int C_randDet(int);
 int C_rollDice(int num, int sides);
 void C_quadratic(float a, float b, float c, float *x1, float *x2);
@@ -219,6 +240,7 @@ void C_signalHandler(CSignalHandler);
 char *C_buf(void);
 char *C_escape(const char *);
 #define C_isComment(c) ((c) == '#')
+#define C_isDigit(c) ((c) >= '0' && (c) <= '9')
 #define C_isPrint(c) ((c) > 0 && (c) < 0x7f)
 #define C_isSpace(c) ((c) > 0 && (c) <= ' ')
 #define C_snprintf_buf(buf, fmt, ...) \

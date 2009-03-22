@@ -23,6 +23,8 @@ typedef struct {
 \******************************************************************************/
 static int GMissile_eventFunc(GMissile *mis, int event, void *args)
 {
+        CVec origin;
+
         /* Ensure parent pointer is valid */
         if (mis->parent && mis->parent->dead)
                 mis->parent = NULL;
@@ -31,9 +33,11 @@ static int GMissile_eventFunc(GMissile *mis, int event, void *args)
         case PE_IMPACT:
                 C_assert(((PEventImpact *)args)->other != mis->parent);
                 PEntity_kill(&mis->entity);
-                P_pushRadius(CVec_add(mis->entity.origin,
-                                      CVec_divf(mis->entity.size, 2)),
-                             PIT_ENTITY, 200, 100);
+                origin = CVec_add(mis->entity.origin,
+                                  CVec_divf(mis->entity.size, 2));
+                P_pushRadius(origin, PIT_ENTITY, 200, 200);
+                G_spawn_at("repelImpact", origin);
+                G_spawn_at("repelFlash", origin);
                 return TRUE;
         case PE_UPDATE:
                 RSprite_center(&mis->sprite, mis->entity.origin,
@@ -72,7 +76,7 @@ void G_fireMissile(PEntity *parent, CVec from, CVec to, int size)
         mis->entity.size = CVec(size, size);
         mis->entity.origin = CVec_add(CVec_sub(from,
                                                CVec_divf(mis->entity.size, 2)),
-                                      CVec_scalef(dir, 9));
+                                      CVec_scalef(dir, 4));
         mis->entity.mass = 1;
         mis->entity.fly = TRUE;
         mis->entity.impactOther = PIT_ENTITY;

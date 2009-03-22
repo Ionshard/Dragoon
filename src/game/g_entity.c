@@ -141,6 +141,15 @@ PEntity *G_spawn(const char *className, const GSpawnParams *params)
         return entity;
 }
 
+PEntity *G_spawn_at(const char *className, CVec origin)
+{
+        GSpawnParams params;
+
+        params.origin = origin;
+        params.size = CVec_zero();
+        return G_spawn(className, &params);
+}
+
 /******************************************************************************\
  Push an entity forward in the linked list. Does not push it behind entities
  z-ordered in behind it.

@@ -45,7 +45,8 @@ static inline CVec CVec_xy(float x, float y)
 \******************************************************************************/
 static inline CVec CVec_randf(float rx, float ry)
 {
-        return CVec_xy(rx * rand() / RAND_MAX, ry * rand() / RAND_MAX);
+        return CVec_xy(rx * (2.f * rand() / RAND_MAX - 1),
+                       ry * (2.f * rand() / RAND_MAX - 1));
 }
 
 static inline CVec CVec_rand(CVec r)

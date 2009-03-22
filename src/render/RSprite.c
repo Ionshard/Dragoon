@@ -92,8 +92,19 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
 
                 /* Next animation frame */
                 else if (!strcasecmp(token, "next") && C_openBrace(file)) {
-                        C_strncpy_buf(data->nextName, C_token(file));
-                        data->nextMsec = C_token_int(file);
+                        for (;;) {
+                                token = C_token(file);
+                                if (C_isDigit(token[0]) || !token[0])
+                                        break;
+                                if (data->nextNames_len == R_NEXT_NAMES)
+                                        C_warning("Random frame limit reached");
+                                if (data->nextNames_len >= R_NEXT_NAMES)
+                                        continue;
+                                C_strncpy_buf(data->nextNames
+                                              [(int)data->nextNames_len++],
+                                              token);
+                        }
+                        data->nextMsec = atoi(token);
                         C_closeBrace(file);
                 }
 
@@ -205,12 +216,15 @@ static void RSprite_animate(RSprite *sprite)
 {
         RSpriteData *data;
         CVec center;
+        int next;
 
-        if (!sprite || !sprite->data || !sprite->data->nextName[0] ||
+        if (!sprite || !sprite->data || !sprite->data->nextNames_len ||
             sprite->initMsec + sprite->data->nextMsec > c_timeMsec)
                 return;
-        if (!(data = CNamed_get(dataRoot, sprite->data->nextName))) {
-                C_warning("Sprite '%s' not loaded", sprite->data->nextName);
+        next = (int)(C_rand() * sprite->data->nextNames_len);
+        if (!(data = CNamed_get(dataRoot, sprite->data->nextNames[next]))) {
+                C_warning("Sprite '%s' not loaded",
+                          sprite->data->nextNames[next]);
                 return;
         }
         center = CVec_add(sprite->origin, sprite->data->center);
@@ -239,6 +253,9 @@ CVec RSprite_getCenter(const RSprite *sprite)
 {
         CVec center;
 
+        if (!sprite || !sprite->data || !sprite->size.x || !sprite->size.y ||
+            !sprite->data->boxSize.x || !sprite->data->boxSize.y)
+                return CVec_zero();
         center = sprite->data->center;
         if (sprite->mirror)
                 center.x = sprite->data->boxSize.x - center.x;

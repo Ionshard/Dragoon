@@ -39,7 +39,8 @@ void P_pushRadius(CVec origin, PImpactType impactType,
                         continue;
 
                 /* Check the distance */
-                dir = CVec_sub(entity->origin, origin);
+                dir = CVec_sub(CVec_add(entity->origin,
+                                        CVec_divf(entity->size, 2)), origin);
                 dist = CVec_len(dir);
                 if (dist >= dist_max || dist <= 0)
                         continue;

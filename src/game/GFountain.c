@@ -16,15 +16,17 @@
 typedef struct {
         PEntity entity;
         RSprite sprite;
-        int deathMsec;
+        int deathMsec, fadeOut;
+        bool dieOnImpact;
 } GParticle;
 
 /* Particle fountain class */
 typedef struct GFountainClass {
         GEntityClass entity;
         CVec velocity, velocityRand;
-        float interval, intervalRand, mass, drag;
-        int lifetime;
+        float interval, intervalRand, drag, elasticity;
+        int lifetime, fadeOut, particles, particlesRand;
+        bool dieOnImpact, noGravity;
 } GFountainClass;
 
 /* Particle fountain entity */
@@ -32,6 +34,7 @@ typedef struct GFountain {
         PEntity entity;
         RSprite sprite;
         float intervalNext;
+        int particles;
 } GFountain;
 
 /******************************************************************************\
@@ -39,14 +42,25 @@ typedef struct GFountain {
 \******************************************************************************/
 static int GParticle_eventFunc(GParticle *particle, int event, void *args)
 {
-        if (event == PE_IMPACT ||
+        if ((event == PE_IMPACT && particle->dieOnImpact) ||
             (event == PE_UPDATE && particle->deathMsec <= c_timeMsec))
                 PEntity_kill(&particle->entity);
         else if (event == PE_UPDATE) {
-                particle->sprite.origin = particle->entity.origin;
-                particle->sprite.size = particle->entity.size;
+                if (particle->entity.size.x || particle->entity.size.y)
+                        particle->sprite.size = particle->entity.size;
+                RSprite_center(&particle->sprite, particle->entity.origin,
+                               CVec_zero());
+
+                /* Orient toward movement direction */
                 particle->sprite.angle = CVec_angle(particle->entity.velocity) -
                                          C_PI / 2;
+
+                /* Fade-out before dying */
+                if (particle->deathMsec - c_timeMsec < particle->fadeOut)
+                        particle->sprite.modulate.a =
+                                (float)(particle->deathMsec - c_timeMsec) /
+                                particle->fadeOut;
+
                 RSprite_draw(&particle->sprite);
         }
         return 0;
@@ -83,12 +97,23 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         particle->entity.size = fountain->entity.size;
         particle->entity.drag = fountainClass->drag;
         particle->entity.mass = 1;
+        particle->entity.elasticity = fountainClass->elasticity;
         particle->entity.impactOther = PIT_WORLD;
         particle->entity.velocity =
                 CVec_add(fountainClass->velocity,
                          CVec_rand(fountainClass->velocityRand));
         particle->deathMsec = c_timeMsec + fountainClass->lifetime;
+        particle->fadeOut = fountainClass->fadeOut;
+        particle->dieOnImpact = fountainClass->dieOnImpact;
+        if (fountainClass->noGravity)
+                particle->entity.fly = TRUE;
         PEntity_spawn(&particle->entity, "Particle");
+
+        /* Check if we are done spawning particles */
+        if (fountain->particles > 0 && !--fountain->particles) {
+                PEntity_kill(&fountain->entity);
+                return 0;
+        }
 
         fountain->intervalNext = c_timeMsec + fountainClass->interval +
                                  C_rand() * fountainClass->intervalRand;
@@ -111,6 +136,8 @@ GFountain *GFountain_spawn(GFountainClass *fountainClass,
         fountain->entity.size = params->size;
         fountain->intervalNext = c_timeMsec + fountainClass->interval +
                                  C_rand() * fountainClass->intervalRand;
+        if ((fountain->particles = fountainClass->particles) > 0)
+                fountain->particles += C_rand() * fountainClass->particlesRand;
         PEntity_spawn(&fountain->entity, "Fountain");
         return fountain;
 }
@@ -161,9 +188,32 @@ void GFountain_parseClass(FILE *file, const char *className)
                 else if (!strcasecmp(token, "drag"))
                         fountainClass->drag = C_token_float(file);
 
+                /* Particle elasticity */
+                else if (!strcasecmp(token, "elasticity"))
+                        fountainClass->elasticity = C_token_float(file);
+
                 /* Particle lifetime */
                 else if (!strcasecmp(token, "lifetime"))
-                        fountainClass->lifetime = C_token_float(file);
+                        fountainClass->lifetime = C_token_int(file);
+
+                /* Particle fadeout duration */
+                else if (!strcasecmp(token, "fadeout"))
+                        fountainClass->fadeOut = C_token_int(file);
+
+                /* Particle quantity */
+                else if (!strcasecmp(token, "particles") && C_openBrace(file)) {
+                        fountainClass->particles = C_token_float(file);
+                        fountainClass->particlesRand = C_token_float(file);
+                        C_closeBrace(file);
+                }
+
+                /* Particle dies when it hits something */
+                else if (!strcasecmp(token, "dieOnImpact"))
+                        fountainClass->dieOnImpact = TRUE;
+
+                /* Particle is unaffected by gravity */
+                else if (!strcasecmp(token, "noGravity"))
+                        fountainClass->noGravity = TRUE;
 
                 else
                         C_warning("Unknown fountain param '%s'", token);

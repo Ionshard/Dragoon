@@ -63,6 +63,7 @@ bool GEntityClass_parseToken(GEntityClass *, FILE *, const char *token);
 void G_pushBackEntity(PEntity *);
 void G_pushForwardEntity(PEntity *);
 PEntity *G_spawn(const char *className, const GSpawnParams *);
+PEntity *G_spawn_at(const char *className, CVec);
 
 extern CNamed *g_classRoot;
 

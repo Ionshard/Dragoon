@@ -13,6 +13,9 @@
 #include "../common/c_public.h"
 #include "r_public.h"
 
+/* Number of random animation names for a sprite */
+#define R_NEXT_NAMES 8
+
 /* 2D vertex */
 #pragma pack(push, 4)
 typedef struct {
@@ -39,7 +42,7 @@ typedef struct RSpriteData {
         CVec boxOrigin, boxSize, center, scale;
         int nextMsec;
         bool additive, flip, mirror, tile;
-        char nextName[C_NAME_MAX];
+        char nextNames_len, nextNames[R_NEXT_NAMES][C_NAME_MAX];
 } RSpriteData;
 
 /* r_mode.c */
