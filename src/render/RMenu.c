@@ -190,20 +190,22 @@ void RMenu_select(RMenu *menu, bool up)
 
         /* Going down */
         if (!up) {
-                if (!menu->selected->next)
-                        return;
-                for (entry = menu->selected->next; entry; entry = entry->next)
+                for (entry = menu->selected->next; ; entry = entry->next) {
+                        if (!entry)
+                                entry = menu->entries;
                         if (entry->enabled) {
                                 menu->selected = entry;
                                 break;
                         }
+                }
                 return;
         }
 
         /* Going up */
-        enabled = NULL;
-        for (entry = menu->entries; entry->next;
-             entry = entry->next) {
+        for (entry = menu->selected->next; entry; entry = entry->next)
+                if (entry->enabled)
+                        enabled = entry;
+        for (entry = menu->entries; entry->next; entry = entry->next) {
                 if (entry == menu->selected)
                         break;
                 if (entry->enabled)
