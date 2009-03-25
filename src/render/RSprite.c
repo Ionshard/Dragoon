@@ -73,7 +73,9 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
 
                 /* Tiling */
                 else if (!strcasecmp(token, "tile"))
-                        data->tile = TRUE;
+                        data->tile = RST_TILE;
+                else if (!strcasecmp(token, "tileGlobal"))
+                        data->tile = RST_TILE_GLOBAL;
 
                 /* Bounding box */
                 else if (!strcasecmp(token, "box") && C_openBrace(file)) {
@@ -339,10 +341,13 @@ void RSprite_draw(RSprite *sprite)
         verts[3].z = 0.f;
 
         /* Setup vertex UV coordinates */
-        if (data->tile) {
+        if (data->tile == RST_TILE_GLOBAL) {
                 verts[0].uv = CVec_div(sprite->origin, surfaceSize);
                 verts[2].uv = CVec_div(CVec_add(sprite->origin, sprite->size),
                                        surfaceSize);
+        } else if (data->tile) {
+                verts[0].uv = CVec_zero();
+                verts[2].uv = CVec_div(sprite->size, surfaceSize);
         } else {
                 verts[0].uv = CVec_div(data->boxOrigin, surfaceSize);
                 verts[2].uv = CVec_div(CVec_add(data->boxOrigin, data->boxSize),

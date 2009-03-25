@@ -237,15 +237,17 @@ static void PEntity_bounceFixture(PEntity *entity, PEntity *other, CVec dir)
 \******************************************************************************/
 static void PEntity_unstick(PEntity *entity, const PEntity *other)
 {
-        CVec diff;
+        CVec entityCenter, otherCenter, diff;
 
-        diff = CVec_sub(entity->origin, other->origin);
-        if (fabsf(diff.x) > fabsf(diff.y))
-                entity->origin.x = diff.x >= 0 ?
+        entityCenter = CVec_add(entity->origin, CVec_divf(entity->size, 2));
+        otherCenter = CVec_add(other->origin, CVec_divf(other->size, 2));
+        diff = CVec_sub(otherCenter, entityCenter);
+        if (fabsf(diff.x) < fabsf(diff.y))
+                entity->origin.x = entityCenter.x > otherCenter.x ?
                                    other->origin.x + other->size.x :
                                    other->origin.x - entity->size.x;
         else
-                entity->origin.y = diff.y >= 0 ?
+                entity->origin.y = entityCenter.y > otherCenter.y ?
                                    other->origin.y + other->size.y :
                                    other->origin.y - entity->size.y;
 }

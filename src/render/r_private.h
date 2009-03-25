@@ -34,14 +34,22 @@ typedef struct RTexture {
         bool upScale, tile;
 } RTexture;
 
+/* Sprite tile modes */
+typedef enum {
+        RST_SCALED = 0,
+        RST_TILE,
+        RST_TILE_GLOBAL,
+} RSpriteTile;
+
 /* Sprite data object */
 typedef struct RSpriteData {
         CNamed named;
         RTexture *texture, *tiled;
+        RSpriteTile tile;
         CColor modulate;
         CVec boxOrigin, boxSize, center, scale;
         int nextMsec;
-        bool additive, flip, mirror, tile;
+        bool additive, flip, mirror;
         char nextNames_len, nextNames[R_NEXT_NAMES][C_NAME_MAX];
 } RSpriteData;
 
