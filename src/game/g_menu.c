@@ -21,6 +21,9 @@
 /* TRUE if the game is in limbo menu */
 bool g_limbo;
 
+/* Filename of map to start on */
+char g_play[C_NAME_MAX];
+
 static RMenu menuMain, *menuShown;
 static float menuBgFade;
 
@@ -35,12 +38,14 @@ static void onQuit(void)
 /******************************************************************************\
  New game callback.
 \******************************************************************************/
-static void onNewGame(void)
+void G_newGame(void)
 {
         g_limbo = FALSE;
         G_hideMenu();
         P_cleanupEntities();
-        G_loadMap("map/test", CVec_zero());
+
+        /* Load starting map */
+        G_loadMap(g_play[0] ? g_play : "map/test", CVec_zero());
         G_spawnPlayer(CVec_zero());
 }
 
@@ -59,7 +64,7 @@ void G_initMenu(void)
                                MENU_Y + MENU_HEIGHT / 2);
         menuMain.size.x = MENU_WIDTH;
         RMenu_add(&menuMain,
-                  RMenuEntry_new("New Game", (CCallback)onNewGame), 0);
+                  RMenuEntry_new("New Game", (CCallback)G_newGame), 0);
         entry = RMenuEntry_new("Continue", NULL);
         entry->enabled = FALSE;
         RMenu_add(&menuMain, entry, 0);

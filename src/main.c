@@ -65,6 +65,9 @@ static void registerVars(void)
         /* Editor */
         C_register_buf(g_edit, "edit", "Filename of map to edit", FALSE);
 
+        /* Testing */
+        C_register_buf(g_play, "play", "Filename of map to start on", FALSE);
+
         /* Debug variables */
         if (CHECKED)
                 C_register_int(&memCheck, "memCheck",
@@ -132,6 +135,8 @@ int main(int argc, char *argv[])
         G_parseEntityCfg("game/entities.cfg");
         if (g_edit[0])
                 G_initEditor();
+        else if (g_play[0])
+                G_newGame();
         else {
                 G_loadMap("map/limbo", CVec_zero());
                 G_showMenu();

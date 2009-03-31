@@ -30,7 +30,10 @@ void G_saveMap(const char *filename);
 /* g_menu.c */
 void G_initMenu(void);
 void G_cleanupMenu(void);
+void G_newGame(void);
 void G_showMenu(void);
+
+extern char g_play[C_NAME_MAX];
 
 /* g_test.c */
 void G_loadTest(void);

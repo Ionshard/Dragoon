@@ -33,7 +33,17 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
 {
         /* The entity display sprite (usually for the editor) */
         if (!strcasecmp(token, "sprite")) {
-                C_strncpy_buf(entity->spriteName, C_token(file));
+
+                /* Inline sprite definition */
+                if (C_openBrace(file)) {
+                        R_parseSpriteSection(file, entity->named.name);
+                        C_strncpy_buf(entity->spriteName, entity->named.name);
+                }
+
+                /* Sprite name */
+                else
+                        C_strncpy_buf(entity->spriteName, C_token(file));
+
                 if (entity->size.x <= 0 && entity->size.y <= 0)
                         entity->size = R_spriteSize(entity->spriteName);
         }

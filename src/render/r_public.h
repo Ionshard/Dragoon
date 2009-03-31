@@ -102,6 +102,7 @@ void RSprite_draw(RSprite *);
 CVec RSprite_getCenter(const RSprite *);
 void RSprite_lookAt(RSprite *, CVec origin);
 bool RSprite_play(RSprite *, const char *name);
+void R_parseSpriteSection(FILE *, const char *name);
 CVec R_spriteSize(const char *name);
 
 /* RText.c */

@@ -34,10 +34,20 @@ void R_cleanupSprites(void)
 /******************************************************************************\
  Parses a sprite section of a configuration file.
 \******************************************************************************/
-static void parseSpriteSection(FILE *file, RSpriteData *data)
+void R_parseSpriteSection(FILE *file, const char *name)
 {
+        RSpriteData *data;
         const char *token;
         bool haveBox = FALSE, haveCenter = FALSE;
+
+        /* Allocate a new data structure */
+        data = CNamed_alloc(&dataRoot, name, sizeof (RSpriteData),
+                            (CCallback)RSpriteData_cleanup, FALSE);
+        if (!data) {
+                C_warning("Sprite '%s' already defined", name);
+                C_closeBrace(file);
+                return;
+        }
 
         /* Defaults */
         data->modulate = CColor_white();
@@ -119,6 +129,8 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
                 else
                         C_warning("Unknown sprite param '%s'", token);
 
+        C_closeBrace(file);
+
         /* Defaults */
         if (!haveBox)
                 data->boxSize = RTexture_size(data->texture);
@@ -139,13 +151,12 @@ static void parseSpriteSection(FILE *file, RSpriteData *data)
 void R_parseSpriteCfg(const char *filename)
 {
         FILE *file;
+        const char *token;
 
         if (!(file = C_fopen_read(filename)))
                 return;
         C_debug("Parsing sprite config '%s'", filename);
         while (!feof(file)) {
-                RSpriteData *data;
-                const char *token;
 
                 /* Read sprite name or command */
                 token = C_token(file);
@@ -167,13 +178,7 @@ void R_parseSpriteCfg(const char *filename)
                 }
 
                 /* Parse sprite section */
-                data = CNamed_alloc(&dataRoot, token, sizeof (RSpriteData),
-                                    (CCallback)RSpriteData_cleanup, FALSE);
-                if (data)
-                        parseSpriteSection(file, data);
-                else
-                        C_warning("Sprite '%s' already defined", token);
-                C_closeBrace(file);
+                R_parseSpriteSection(file, token);
         }
         fclose(file);
 }

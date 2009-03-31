@@ -75,11 +75,13 @@ bool C_openBrace(FILE *file)
 \******************************************************************************/
 void C_closeBrace(FILE *file)
 {
-        int ch;
+        int ch, braces = 1;
 
-        for (ch = readConfig(file); ch >= 0 && ch != '}';
-             ch = readConfig(file))
-                if (ch == '\\' && fgetc(file) < 0)
+        for (ch = readConfig(file); ch >= 0; ch = readConfig(file))
+                if (ch == '{')
+                        braces++;
+                else if ((ch == '}' && --braces < 1) ||
+                         (ch == '\\' && fgetc(file) < 0))
                         break;
 }
 
