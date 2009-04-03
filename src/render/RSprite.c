@@ -34,6 +34,23 @@ void R_cleanupSprites(void)
 /******************************************************************************\
  Parses a sprite section of a configuration file.
 \******************************************************************************/
+static void parseTileSection(FILE *file, RSpriteData *data)
+{
+        const char *token;
+
+        data->tile = RST_TILE;
+        if (!C_openBrace(file))
+                return;
+        for (token = C_token(file); token[0]; token = C_token(file))
+                if (!strcasecmp(token, "global"))
+                        data->tile = RST_TILE_GLOBAL;
+                else if (!strcasecmp(token, "parallax")) {
+                        data->tile = RST_TILE_PARALLAX;
+                        data->parallax = C_token_float(file);
+                }
+        C_closeBrace(file);
+}
+
 void R_parseSpriteSection(FILE *file, const char *name)
 {
         RSpriteData *data;
@@ -83,9 +100,7 @@ void R_parseSpriteSection(FILE *file, const char *name)
 
                 /* Tiling */
                 else if (!strcasecmp(token, "tile"))
-                        data->tile = RST_TILE;
-                else if (!strcasecmp(token, "tileGlobal"))
-                        data->tile = RST_TILE_GLOBAL;
+                        parseTileSection(file, data);
 
                 /* Bounding box */
                 else if (!strcasecmp(token, "box") && C_openBrace(file)) {
@@ -349,6 +364,14 @@ void RSprite_draw(RSprite *sprite)
         if (data->tile == RST_TILE_GLOBAL) {
                 verts[0].uv = CVec_div(sprite->origin, surfaceSize);
                 verts[2].uv = CVec_div(CVec_add(sprite->origin, sprite->size),
+                                       surfaceSize);
+        } else if (data->tile == RST_TILE_PARALLAX) {
+                CVec origin;
+
+                origin = CVec_sub(sprite->origin,
+                                  CVec_scalef(r_camera, data->parallax));
+                verts[0].uv = CVec_div(origin, surfaceSize);
+                verts[2].uv = CVec_div(CVec_add(origin, sprite->size),
                                        surfaceSize);
         } else if (data->tile) {
                 verts[0].uv = CVec_zero();

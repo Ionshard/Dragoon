@@ -197,7 +197,7 @@ void G_spawnPlayer(CVec origin)
         RSprite_init(&playerBody, "playerBody");
         RSprite_init(&playerWeapon, "repelCannon");
         playerEntity.origin = origin;
-        playerEntity.size = CVec(10, 18);
+        playerEntity.size = CVec(10, 16);
         playerEntity.mass = 1;
         playerEntity.friction = 5;
         playerEntity.drag = 0;

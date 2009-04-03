@@ -39,6 +39,7 @@ typedef enum {
         RST_SCALED = 0,
         RST_TILE,
         RST_TILE_GLOBAL,
+        RST_TILE_PARALLAX,
 } RSpriteTile;
 
 /* Sprite data object */
@@ -48,6 +49,7 @@ typedef struct RSpriteData {
         RSpriteTile tile;
         CColor modulate;
         CVec boxOrigin, boxSize, center, scale;
+        float parallax;
         int nextMsec;
         bool additive, flip, mirror;
         char nextNames_len, nextNames[R_NEXT_NAMES][C_NAME_MAX];

@@ -23,7 +23,7 @@
 #define G_Z_BACK -1.00f
 
 /* Player muzzle vertical offset from entity center */
-#define G_MUZZLE_OFFSET 4
+#define G_MUZZLE_OFFSET 2
 
 /* Input events, extends physics events */
 typedef enum {
