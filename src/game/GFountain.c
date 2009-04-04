@@ -108,6 +108,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         if (fountainClass->noGravity)
                 particle->entity.fly = TRUE;
         PEntity_spawn(&particle->entity, "Particle");
+        G_depthSortEntity(&particle->entity, particle->sprite.z);
 
         /* Check if we are done spawning particles */
         if (fountain->particles > 0 && !--fountain->particles) {

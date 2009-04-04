@@ -23,6 +23,7 @@
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
 
+static GEntityClass playerClass;
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
 static CVec aim, muzzle;
@@ -30,48 +31,12 @@ static int fireDelay;
 static bool jumpHeld;
 
 /******************************************************************************\
- Player entity event function.
+ Draw the HUD.
 \******************************************************************************/
-static int playerEvent(PEntity *entity, int event, void *args)
+void G_drawHud(void)
 {
-        if (event == PE_FREE)
-                return 1;
-        return 0;
-}
-
-/******************************************************************************\
- Draw the player entity.
-\******************************************************************************/
-void G_drawPlayer(void)
-{
-        bool mirror;
-
-        mirror = aim.x > playerEntity.origin.x + playerEntity.size.x / 2.f;
-        RSprite_center(&playerBody, playerEntity.origin, playerEntity.size);
-        RSprite_center(&playerWeapon, muzzle, CVec_zero());
-        RSprite_center(&playerHead, playerEntity.origin, playerEntity.size);
-
-        /* Position the cursor */
-        RSprite_center(&cursor, aim, CVec_zero());
         RSprite_lookAt(&cursor, muzzle);
-        RSprite_lookAt(&playerHead, aim);
-        RSprite_lookAt(&playerWeapon, aim);
-
-        /* Mirror the sprite */
-        if (!(playerBody.mirror = playerHead.mirror =
-                                  playerWeapon.mirror = mirror)) {
-                playerHead.angle += M_PI;
-                playerWeapon.angle += M_PI;
-        }
-        RSprite_center(&playerBody, playerEntity.origin,
-                       playerEntity.size);
-        RSprite_center(&playerWeapon, muzzle, CVec_zero());
-        RSprite_center(&playerHead, playerEntity.origin,
-                       playerEntity.size);
-
-        RSprite_draw(&playerBody);
-        RSprite_draw(&playerHead);
-        RSprite_draw(&playerWeapon);
+        RSprite_center(&cursor, aim, CVec_zero());
         RSprite_draw(&cursor);
 }
 
@@ -92,6 +57,59 @@ static CVec constrainedMouse(void)
         else if (dist < CURSOR_DIST)
                 return CVec_add(center, CVec_scalef(diff, CURSOR_DIST / dist));
         return g_mouse;
+}
+
+/******************************************************************************\
+ Player entity event function.
+\******************************************************************************/
+static int playerEvent(PEntity *entity, int event, void *args)
+{
+        bool mirror;
+
+        switch (event) {
+        case PE_FREE:
+                return 1;
+        case PE_UPDATE:
+
+                /* Weapon muzzle */
+                muzzle = CVec_add(playerEntity.origin,
+                                  CVec_divf(playerEntity.size, 2));
+                muzzle.y += G_MUZZLE_OFFSET;
+                aim = CVec_add(r_cameraTo, constrainedMouse());
+
+                /* Position body parts */
+                mirror = aim.x > playerEntity.origin.x +
+                                 playerEntity.size.x / 2.f;
+                RSprite_center(&playerBody, playerEntity.origin,
+                               playerEntity.size);
+                RSprite_center(&playerWeapon, muzzle, CVec_zero());
+                RSprite_center(&playerHead, playerEntity.origin,
+                               playerEntity.size);
+
+                /* Position the head and weapon */
+                RSprite_lookAt(&playerHead, aim);
+                RSprite_lookAt(&playerWeapon, aim);
+
+                /* Mirror the sprite */
+                if (!(playerBody.mirror = playerHead.mirror =
+                                          playerWeapon.mirror = mirror)) {
+                        playerHead.angle += M_PI;
+                        playerWeapon.angle += M_PI;
+                }
+                RSprite_center(&playerBody, playerEntity.origin,
+                               playerEntity.size);
+                RSprite_center(&playerWeapon, muzzle, CVec_zero());
+                RSprite_center(&playerHead, playerEntity.origin,
+                               playerEntity.size);
+
+                RSprite_draw(&playerBody);
+                RSprite_draw(&playerHead);
+                RSprite_draw(&playerWeapon);
+                break;
+        default:
+                break;
+        }
+        return 0;
 }
 
 /******************************************************************************\
@@ -139,20 +157,14 @@ void G_updatePlayer(void)
                                           "playerBodyUp" : "playerBodyDown");
         }
 
-        /* The player entity is updated before all others so we know where to
-           place the camera this frame */
-        PEntity_update(&playerEntity);
+        /* Make sure player sprite depth is correct */
+        playerHead.z = playerBody.z = playerWeapon.z = playerClass.z;
 
         /* Update camera */
         r_cameraTo = CVec_add(playerEntity.origin,
                               CVec_divf(playerEntity.size, 2));
         r_cameraTo.x -= r_widthScaled / 2;
         r_cameraTo.y -= r_heightScaled / 2;
-
-        /* Weapon muzzle */
-        muzzle = CVec_add(playerEntity.origin, CVec_divf(playerEntity.size, 2));
-        muzzle.y += G_MUZZLE_OFFSET;
-        aim = CVec_add(r_cameraTo, constrainedMouse());
 }
 
 /******************************************************************************\
@@ -192,10 +204,20 @@ bool G_dispatch_player(GEvent event)
 \******************************************************************************/
 void G_spawnPlayer(CVec origin)
 {
+        /* Init player class */
+        C_zero(&playerClass);
+        C_strncpy_buf(playerClass.named.name, "Player");
+        playerClass.z = G_Z_CHAR;
+
+        /* Init sprites */
         RSprite_init(&cursor, "cursor");
         RSprite_init(&playerHead, "playerHead");
         RSprite_init(&playerBody, "playerBody");
         RSprite_init(&playerWeapon, "repelCannon");
+        cursor.z = G_Z_HUD;
+
+        /* Spawn player */
+        playerEntity.entityClass = &playerClass;
         playerEntity.origin = origin;
         playerEntity.size = CVec(10, 16);
         playerEntity.mass = 1;
@@ -203,9 +225,10 @@ void G_spawnPlayer(CVec origin)
         playerEntity.drag = 0;
         playerEntity.eventFunc = (PEventFunc)playerEvent;
         playerEntity.impactOther = PIT_ENTITY;
-        playerEntity.manualUpdate = TRUE;
+        playerEntity.manualUpdate = FALSE;
         playerEntity.stepSize = 8;
         PEntity_spawn(&playerEntity, "Player");
         PEntity_impact(&playerEntity, PIT_ENTITY);
+        G_depthSortEntity(&playerEntity, playerClass.z);
 }
 

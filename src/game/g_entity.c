@@ -64,6 +64,8 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
                 token = C_token(file);
                 if (!strcasecmp(token, "fore"))
                         entity->z = G_Z_FORE;
+                else if (!strcasecmp(token, "char"))
+                        entity->z = G_Z_CHAR;
                 else if (!strcasecmp(token, "mid"))
                         entity->z = G_Z_MID;
                 else if (!strcasecmp(token, "rear"))
@@ -121,6 +123,23 @@ void G_parseEntityCfg(const char *filename)
 }
 
 /******************************************************************************\
+ Sort a newly spawned entity into the proper z order.
+\******************************************************************************/
+void G_depthSortEntity(PEntity *entity, float z)
+{
+        GEntityClass *otherClass;
+        PEntity *other;
+
+        while (CLink_prev(&entity->linkAll)) {
+                other = CLink_get(CLink_prev(&entity->linkAll));
+                otherClass = (GEntityClass *)other->entityClass;
+                if (otherClass && otherClass->z <= z)
+                        break;
+                CLink_forward(&entity->linkAll);
+        }
+}
+
+/******************************************************************************\
  Spawn a named entity.
 \******************************************************************************/
 PEntity *G_spawn(const char *className, const GSpawnParams *params)
@@ -134,20 +153,7 @@ PEntity *G_spawn(const char *className, const GSpawnParams *params)
         }
         if ((entity = entityClass->spawnFunc(entityClass, params)))
                 entity->entityClass = entityClass;
-
-        /* Push the entity we just spawned behind all entities that are
-           z-ordered in front of it */
-        while (CLink_prev(&entity->linkAll)) {
-                GEntityClass *otherClass;
-                PEntity *other;
-
-                other = CLink_get(CLink_prev(&entity->linkAll));
-                otherClass = (GEntityClass *)other->entityClass;
-                if (otherClass && otherClass->z <= entityClass->z)
-                        break;
-                CLink_forward(&entity->linkAll);
-        }
-
+        G_depthSortEntity(entity, entityClass->z);
         return entity;
 }
 
@@ -174,7 +180,7 @@ void G_pushForwardEntity(PEntity *entity)
         other = CLink_get(CLink_prev(&entity->linkAll));
         otherClass = (GEntityClass *)other->entityClass;
         entityClass = (GEntityClass *)entity->entityClass;
-        if (otherClass->z < entityClass->z)
+        if (entityClass && otherClass && otherClass->z < entityClass->z)
                 return;
         CLink_forward(&entity->linkAll);
 }
@@ -193,7 +199,7 @@ void G_pushBackEntity(PEntity *entity)
         other = CLink_get(CLink_next(&entity->linkAll));
         otherClass = (GEntityClass *)other->entityClass;
         entityClass = (GEntityClass *)entity->entityClass;
-        if (otherClass->z > entityClass->z)
+        if (entityClass && otherClass && otherClass->z > entityClass->z)
                 return;
         CLink_back(&entity->linkAll);
 }

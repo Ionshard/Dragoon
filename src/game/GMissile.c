@@ -82,5 +82,6 @@ void G_fireMissile(PEntity *parent, CVec from, CVec to, int size)
         mis->entity.impactOther = PIT_ENTITY;
         mis->entity.velocity = CVec_scalef(dir, 400);
         PEntity_spawn(&mis->entity, "Missile");
+        G_depthSortEntity(&mis->entity, mis->sprite.z);
 }
 

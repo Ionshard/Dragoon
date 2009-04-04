@@ -16,8 +16,9 @@
 #include "g_public.h"
 
 /* Z values for game layers */
-#define G_Z_HUD   0.00f
+#define G_Z_HUD  0.00f
 #define G_Z_FORE -0.25f
+#define G_Z_CHAR -0.33f
 #define G_Z_MID  -0.50f
 #define G_Z_REAR -0.75f
 #define G_Z_BACK -1.00f
@@ -60,6 +61,7 @@ bool G_dispatch_editor(GEvent);
 /* g_entity.c */
 void GEntityClass_init(GEntityClass *);
 bool GEntityClass_parseToken(GEntityClass *, FILE *, const char *token);
+void G_depthSortEntity(PEntity *, float z);
 void G_pushBackEntity(PEntity *);
 void G_pushForwardEntity(PEntity *);
 PEntity *G_spawn(const char *className, const GSpawnParams *);
@@ -98,7 +100,7 @@ void G_fireMissile(PEntity *parent, CVec from, CVec to, int size);
 
 /* g_player.c */
 bool G_dispatch_player(GEvent);
-void G_drawPlayer(void);
+void G_drawHud(void);
 void G_spawnPlayer(CVec origin);
 void G_updatePlayer(void);
 

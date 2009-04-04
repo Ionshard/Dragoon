@@ -87,7 +87,7 @@ void G_update(void)
         /* Should only render entities now so offset the camera */
         R_beginCam();
         P_updateEntities();
-        G_drawPlayer();
+        G_drawHud();
         R_endCam();
 
         /* Propagate event */
