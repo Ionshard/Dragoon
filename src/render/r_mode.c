@@ -26,6 +26,9 @@ CCount r_countFaces, r_countLines;
 CVec r_camera, r_cameraTo;
 bool r_cameraOn;
 
+/* Screenshots */
+static char screenshot[256];
+
 /******************************************************************************\
  See if there were any OpenGL errors.
 \******************************************************************************/
@@ -129,6 +132,50 @@ void R_initGl(void)
 }
 
 /******************************************************************************\
+ Mark this frame for saving a screenshot when the buffer flips. Returns the
+ full path and filename of the image saved or NULL if there was a problem.
+\******************************************************************************/
+const char *R_screenshot(void)
+{
+        time_t msec;
+        struct tm *local;
+        int i;
+        const char *filename;
+        char dir[256];
+
+        /* Make sure the directory exists */
+        snprintf(dir, sizeof (dir), "%s/screenshots", C_userDir());
+        if (!C_mkdir(dir)) {
+                C_warning("Failed to create screenshot directory '%s'", dir);
+                return NULL;
+        }
+
+        /* Can't take two screenshots per frame */
+        if (screenshot[0]) {
+                C_warning("Can't save screenshot, '%s' queued", screenshot);
+                return NULL;
+        }
+
+        /* Start off with a path based on the current date and time */
+        time(&msec);
+        local = localtime(&msec);
+        filename = C_va("%s/%d-%02d-%02d--%02d%02d.png",
+                        dir, local->tm_year + 1900,
+                        local->tm_mon + 1, local->tm_mday, local->tm_hour,
+                        local->tm_min);
+
+        /* If this is taken, start adding letters to the end of it */
+        for (i = 0; C_fileExists(filename) && i < 26; i++)
+                filename = C_va("%s/%d-%02d-%02d--%02d%02d%c.png",
+                                dir, local->tm_year + 1900,
+                                local->tm_mon + 1, local->tm_mday,
+                                local->tm_hour, local->tm_min, 'a' + i);
+
+        C_strncpy_buf(screenshot, filename);
+        return filename;
+}
+
+/******************************************************************************\
  Clears the buffer and starts rendering the scene.
 \******************************************************************************/
 void R_begin(void)
@@ -146,6 +193,17 @@ void R_begin(void)
 \******************************************************************************/
 void R_end(void)
 {
+        /* Before flipping the buffer, save any pending screenshots */
+        if (screenshot[0]) {
+                SDL_Surface *surf;
+
+                C_debug("Saving screenshot '%s'", screenshot);
+                surf = R_screenSurface(0, 0, r_width, r_height);
+                R_saveSurface(surf, screenshot);
+                R_freeSurface(surf);
+                screenshot[0] = NUL;
+        }
+
         SDL_GL_SwapBuffers();
         R_checkErrors();
 }

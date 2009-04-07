@@ -85,6 +85,7 @@ void R_beginCam(void);
 void R_end(void);
 void R_endCam(void);
 void R_initGl(void);
+const char *R_screenshot(void);
 bool R_setVideoMode(void);
 
 extern CCount r_countFaces;

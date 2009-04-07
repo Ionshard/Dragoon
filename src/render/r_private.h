@@ -28,9 +28,10 @@ typedef struct {
 /* Texture object */
 typedef struct RTexture {
         CNamed named;
-        CVec scaleUV, pow2Size;
+        CVec scaleUV;
         SDL_Surface *surface;
         GLuint glName;
+        int pow2Width, pow2Height;
         bool upScale, tile;
 } RTexture;
 
@@ -51,7 +52,7 @@ typedef struct RSpriteData {
         CVec boxOrigin, boxSize, center, scale;
         float parallax;
         int nextMsec;
-        bool additive, flip, mirror;
+        bool additive, flip, mirror, upscale;
         char nextNames_len, nextNames[R_NEXT_NAMES][C_NAME_MAX];
 } RSpriteData;
 
@@ -68,14 +69,19 @@ extern bool r_cameraOn;
 
 /* r_surface.c */
 SDL_Surface *R_allocSurface(int width, int height);
+void R_blitSurface(SDL_Surface *src, SDL_Surface *dest,
+                   int sx, int sy, int sw, int sh,
+                   int dx, int dy, int dw, int dh);
 void R_deseamSurface(SDL_Surface *);
+void R_flipSurface(SDL_Surface *);
 void R_freeSurface(SDL_Surface *);
 CColor R_getPixel(const SDL_Surface *, int x, int y);
 void R_putPixel(SDL_Surface *, int x, int y, CColor);
 SDL_Surface *R_loadSurface(const char *filename);
 int R_saveSurface(SDL_Surface *, const char *filename);
 void R_scaleSurface(SDL_Surface *src, SDL_Surface *dest,
-                    int scale, int dx, int dy);
+                    int scale_x, int scale_y, int dx, int dy);
+SDL_Surface *R_screenSurface(int x, int y, int w, int h);
 #define R_surfaceSize(s) CVec_xy((s)->w, (s)->h)
 
 extern int r_videoMem, r_videoMemMax;

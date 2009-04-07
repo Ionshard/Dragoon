@@ -136,10 +136,23 @@ void R_parseSpriteSection(FILE *file, const char *name)
                 }
 
                 /* Scale factor */
-                else if (!strcasecmp(token, "scale") && C_openBrace(file)) {
-                        data->scale = C_token_vec(file);
-                        C_closeBrace(file);
+                else if (!strcasecmp(token, "scale")) {
+
+                        /* Vector form */
+                        if (C_openBrace(file)) {
+                                data->scale = C_token_vec(file);
+                                C_closeBrace(file);
+                        }
+
+                        /* Scalar form */
+                        else
+                                data->scale.y = data->scale.x =
+                                                C_token_float(file);
                 }
+
+                /* Force upscale */
+                else if (!strcasecmp(token, "upscale"))
+                        data->upscale = TRUE;
 
                 else
                         C_warning("Unknown sprite param '%s'", token);
@@ -207,7 +220,7 @@ CVec R_spriteSize(const char *name)
 
         if (!(data = CNamed_get(dataRoot, name)))
                 return CVec_zero();
-        return data->boxSize;
+        return CVec_scale(data->boxSize, data->scale);
 }
 
 /******************************************************************************\
@@ -331,7 +344,7 @@ void RSprite_draw(RSprite *sprite)
 
         /* Bind texture */
         texture = data->tile ? data->tiled : data->texture;
-        RTexture_select(texture, smooth, data->additive);
+        RTexture_select(texture, smooth || data->upscale, data->additive);
 
         /* Additive blending */
         if (data->additive) {
@@ -381,6 +394,13 @@ void RSprite_draw(RSprite *sprite)
                 verts[2].uv = CVec_div(CVec_add(data->boxOrigin, data->boxSize),
                                        surfaceSize);
         }
+
+        /* Scale UV for tiled sprites */
+        if (data->tile) {
+                verts[0].uv = CVec_div(verts[0].uv, data->scale);
+                verts[2].uv = CVec_div(verts[2].uv, data->scale);
+        }
+
         verts[1].uv.x = verts[0].uv.x;
         verts[1].uv.y = verts[2].uv.y;
         verts[3].uv.x = verts[2].uv.x;

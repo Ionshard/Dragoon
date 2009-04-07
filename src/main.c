@@ -158,6 +158,11 @@ int main(int argc, char *argv[])
                              ev.key.keysym.sym == SDLK_ESCAPE))
                                 return 0;
 
+                        /* Screenshot key */
+                        if (ev.type == SDL_KEYDOWN &&
+                            ev.key.keysym.sym == SDLK_F12)
+                                R_screenshot();
+
                         G_dispatch(&ev);
                 }
 

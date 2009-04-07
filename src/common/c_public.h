@@ -142,6 +142,7 @@ void CArray_sort(CArray *, int (*compare)(const void *, const void *));
 
 /* c_file.c */
 void C_closeBrace(FILE *);
+bool C_fileExists(const char *name);
 FILE *C_fopen_full(const char *func, const char *filename, bool write);
 #define C_fopen_read(f) C_fopen_full(__func__, (f), FALSE)
 #define C_fopen_write(f) C_fopen_full(__func__, (f), TRUE)

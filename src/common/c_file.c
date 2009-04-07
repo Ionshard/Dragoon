@@ -156,3 +156,18 @@ char *C_readString(FILE *file, int *plen)
         return buf;
 }
 
+/******************************************************************************\
+ Returns TRUE if the file exists.
+\******************************************************************************/
+bool C_fileExists(const char *name)
+{
+        FILE *file;
+
+        file = fopen(name, "r");
+        if (file) {
+                fclose(file);
+                return TRUE;
+        }
+        return FALSE;
+}
+

@@ -50,47 +50,56 @@ void R_cleanupTextures(void)
 \******************************************************************************/
 void RTexture_upload(RTexture *pt)
 {
-        SDL_Rect rect;
         SDL_Surface *pow2Surface;
-        CVec realSize;
+        int realWidth, realHeight, scale;
 
         /* Texture has no surface data */
         if (!pt->surface)
                 return;
 
-        /* Scale this texture onto a larger power-of-two surface */
+        /* Surface size can be upscaled or not */
+        scale = 1;
+        realWidth = pt->surface->w;
+        realHeight = pt->surface->h;
         if (pt->upScale) {
-                realSize = CVec_xy(pt->surface->w * r_scale,
-                                   pt->surface->h * r_scale);
-                pt->pow2Size = CVec_xy(C_nextPow2(realSize.x + 2),
-                                       C_nextPow2(realSize.y + 2));
-                pow2Surface = R_allocSurface(pt->pow2Size.x, pt->pow2Size.y);
-                R_scaleSurface(pt->surface, pow2Surface, r_scale, 1, 1);
-                pt->scaleUV = CVec_div(realSize, pt->pow2Size);
+                realWidth *= scale = r_scale;
+                realHeight *= scale;
         }
 
-        /* No scaling requested */
+        /* Tiled texture span the entire surface */
+        if (pt->tile) {
+                pt->scaleUV = CVec(1, 1);
+
+                /* Allocate power-of-two surface */
+                pt->pow2Width = C_nextPow2(realWidth);
+                pt->pow2Height = C_nextPow2(realHeight);
+                pow2Surface = R_allocSurface(pt->pow2Width, pt->pow2Height);
+
+                /* Blit onto the new surface */
+                R_blitSurface(pt->surface, pow2Surface,
+                              0, 0, pt->surface->w, pt->surface->h,
+                              0, 0, pt->pow2Width, pt->pow2Height);
+        }
+
+        /* Otherwise we use texture coords to isolate a piece and add a
+           one pixel border around the texture */
         else {
-                realSize = CVec(pt->surface->w, pt->surface->h);
-                rect.x = 0;
-                rect.y = 0;
-                rect.w = realSize.x;
-                rect.h = realSize.y;
 
-                /* Leave one pixel border for non-tiled textures */
-                if (!pt->tile) {
-                        rect.x = 1;
-                        rect.y = 1;
-                        pt->pow2Size = CVec_xy(C_nextPow2(realSize.x + 2),
-                                               C_nextPow2(realSize.y + 2));
-                } else
-                        pt->pow2Size = CVec_xy(C_nextPow2(realSize.x),
-                                               C_nextPow2(realSize.y));
+                /* Allocate power-of-two surface */
+                pt->pow2Width = C_nextPow2(realWidth + 1);
+                pt->pow2Height = C_nextPow2(realHeight + 1);
+                pow2Surface = R_allocSurface(pt->pow2Width, pt->pow2Height);
 
-                pow2Surface = R_allocSurface(pt->pow2Size.x, pt->pow2Size.y);
-                SDL_BlitSurface(pt->surface, NULL, pow2Surface, &rect);
-                pt->scaleUV = CVec_div(realSize, pt->pow2Size);
+                /* Blit onto the new surface */
+                R_scaleSurface(pt->surface, pow2Surface, scale, scale, 1, 1);
+
+                /* Save UV scale */
+                pt->scaleUV = CVec((float)realWidth / pt->pow2Width,
+                                   (float)realHeight / pt->pow2Height);
         }
+
+        if (pt->surface->w == 50)
+                R_saveSurface(pow2Surface, "test.png");
 
         /* Upload the texture to OpenGL and build mipmaps */
         glBindTexture(GL_TEXTURE_2D, pt->glName);
@@ -137,7 +146,6 @@ RTexture *RTexture_load(const char *filename)
 RTexture *RTexture_extract(const RTexture *src, int x, int y, int w, int h)
 {
         RTexture *dest;
-        SDL_Rect rect;
 
         if (!src || !src->surface)
                 return NULL;
@@ -148,11 +156,8 @@ RTexture *RTexture_extract(const RTexture *src, int x, int y, int w, int h)
         dest->named.cleanupFunc = (CCallback)RTexture_cleanup;
         dest->surface = R_allocSurface(w, h);
         dest->tile = TRUE;
-        rect.x = x;
-        rect.y = y;
-        rect.w = w;
-        rect.h = h;
-        SDL_BlitSurface(src->surface, &rect, dest->surface, NULL);
+        R_blitSurface(src->surface, dest->surface,
+                      x, y, w, h, 0, 0, w, h);
         R_deseamSurface(dest->surface);
 
         /* Load the texture into OpenGL */
@@ -200,8 +205,8 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
         glMatrixMode(GL_TEXTURE);
         glLoadIdentity();
         if (!texture->tile)
-                glTranslatef(1.f / texture->pow2Size.x,
-                             1.f / texture->pow2Size.y, 0.f);
+                glTranslatef(1.f / texture->pow2Width,
+                             1.f / texture->pow2Height, 0.f);
         glScalef(texture->scaleUV.x, texture->scaleUV.y, 1.f);
         glMatrixMode(GL_MODELVIEW);
 

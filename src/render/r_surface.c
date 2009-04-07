@@ -82,10 +82,10 @@ void R_putPixel(SDL_Surface *surf, int x, int y, CColor color)
 }
 
 /******************************************************************************\
- Whole-integer scale blit a surface.
+ Scale a surface by an integer size.
 \******************************************************************************/
 void R_scaleSurface(SDL_Surface *src, SDL_Surface *dest,
-                    int scale, int dx, int dy)
+                    int scale_x, int scale_y, int dx, int dy)
 {
         CColor color;
         int x, y, xs, ys;
@@ -97,10 +97,35 @@ void R_scaleSurface(SDL_Surface *src, SDL_Surface *dest,
         for (y = 0; y < src->h; y++)
                 for (x = 0; x < src->w; x++) {
                         color = R_getPixel(src, x, y);
-                        for (ys = 0; ys < scale; ys++)
-                                for (xs = 0; xs < scale; xs++)
-                                        R_putPixel(dest, dx + scale * x + xs,
-                                                   dy + scale * y + ys, color);
+                        for (ys = 0; ys < scale_y; ys++)
+                                for (xs = 0; xs < scale_x; xs++)
+                                        R_putPixel(dest, dx + scale_x * x + xs,
+                                                   dy + scale_y * y + ys,
+                                                   color);
+                }
+        SDL_UnlockSurface(src);
+        SDL_UnlockSurface(dest);
+}
+
+/******************************************************************************\
+ Resizing surface blit.
+\******************************************************************************/
+void R_blitSurface(SDL_Surface *src, SDL_Surface *dest,
+                   int sx, int sy, int sw, int sh,
+                   int dx, int dy, int dw, int dh)
+{
+        CColor color;
+        int x, y;
+
+        if (SDL_LockSurface(src) < 0 || SDL_LockSurface(dest) < 0) {
+                C_warning("Failed to lock source or destination surface");
+                return;
+        }
+        for (y = 0; y < dh; y++)
+                for (x = 0; x < dw; x++) {
+                        color = R_getPixel(src, sx + x * sw / dw,
+                                                sy + y * sh / dh);
+                        R_putPixel(dest, dx + x, dy + y, color);
                 }
         SDL_UnlockSurface(src);
         SDL_UnlockSurface(dest);
@@ -438,5 +463,50 @@ void R_deseamSurface(SDL_Surface *surf)
                         R_putPixel(surf, x, y, sum);
                 }
         SDL_UnlockSurface(surf);
+}
+
+/******************************************************************************\
+ Vertically flip [surf]'s pixels. Do not call on a locked surface.
+\******************************************************************************/
+void R_flipSurface(SDL_Surface *surf)
+{
+        int x, y;
+
+        if (SDL_LockSurface(surf) < 0) {
+                C_warning("Failed to lock surface");
+                return;
+        }
+        for (y = 0; y < surf->h / 2; y++)
+                for (x = 0; x < surf->w; x++) {
+                        CColor color_top, color_bottom;
+
+                        color_top = R_getPixel(surf, x, y);
+                        color_bottom = R_getPixel(surf, x, surf->h - y - 1);
+                        R_putPixel(surf, x, y, color_bottom);
+                        R_putPixel(surf, x, surf->h - y - 1, color_top);
+                }
+        SDL_UnlockSurface(surf);
+}
+
+/******************************************************************************\
+ Reads in an area of the screen (current buffer) from ([x], [y]) the size of
+ the texture.
+\******************************************************************************/
+SDL_Surface *R_screenSurface(int x, int y, int w, int h)
+{
+        SDL_Surface *video, *surf;
+
+        video = SDL_GetVideoSurface();
+        surf = R_allocSurface(w, h);
+        if (SDL_LockSurface(surf) < 0) {
+                C_warning("Failed to lock surface: %s", SDL_GetError());
+                return NULL;
+        }
+        glReadPixels(x, r_height - h - y, w, h,
+                     GL_RGBA, GL_UNSIGNED_BYTE, surf->pixels);
+        SDL_UnlockSurface(surf);
+        R_flipSurface(surf);
+        R_checkErrors();
+        return surf;
 }
 
