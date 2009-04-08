@@ -98,9 +98,6 @@ void RTexture_upload(RTexture *pt)
                                    (float)realHeight / pt->pow2Height);
         }
 
-        if (pt->surface->w == 50)
-                R_saveSurface(pow2Surface, "test.png");
-
         /* Upload the texture to OpenGL and build mipmaps */
         glBindTexture(GL_TEXTURE_2D, pt->glName);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pow2Surface->w, pow2Surface->h,
