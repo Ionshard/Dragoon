@@ -7,4 +7,5 @@ dragoon
 *.swp
 *.html
 *.pyc
+*.todo
 gendoc/gendoc
