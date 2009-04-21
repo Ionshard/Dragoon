@@ -108,7 +108,7 @@ static CVec keyToDir(int key)
                 return CVec(0, -1);
         if (key == 's' || key == 'k' || key == SDLK_DOWN)
                 return CVec(0, 1);
-        return CVec_zero();
+        return CVec(0, 0);
 }
 
 /******************************************************************************\

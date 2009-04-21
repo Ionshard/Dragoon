@@ -46,10 +46,10 @@ typedef enum {
 /* Sprite data object */
 typedef struct RSpriteData {
         CNamed named;
-        RTexture *texture, *tiled;
+        RTexture *texture, *tiled, *edges[4];
         RSpriteTile tile;
         CColor modulate;
-        CVec boxOrigin, boxSize, center, scale;
+        CVec boxOrigin, boxSize, center, scale, corner;
         float parallax;
         int nextMsec;
         bool additive, flip, mirror, upscale;
@@ -94,6 +94,6 @@ RTexture *RTexture_extract(const RTexture *, int x, int y, int w, int h);
 RTexture *RTexture_load(const char *filename);
 void RTexture_select(RTexture *, bool smooth, bool additive);
 #define RTexture_size(t) \
-        ((t) && (t)->surface ? R_surfaceSize((t)->surface) : CVec_zero())
+        ((t) && (t)->surface ? R_surfaceSize((t)->surface) : CVec(0, 0))
 void RTexture_upload(RTexture *);
 

@@ -45,8 +45,8 @@ void G_newGame(void)
         P_cleanupEntities();
 
         /* Load starting map */
-        G_spawnPlayer(CVec_zero());
-        G_loadMap(g_play[0] ? g_play : "map/test", CVec_zero());
+        G_spawnPlayer(CVec(0, 0));
+        G_loadMap(g_play[0] ? g_play : "map/test", CVec(0, 0));
 }
 
 /******************************************************************************\

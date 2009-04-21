@@ -162,7 +162,7 @@ PEntity *G_spawn_at(const char *className, CVec origin)
         GSpawnParams params;
 
         params.origin = origin;
-        params.size = CVec_zero();
+        params.size = CVec(0, 0);
         return G_spawn(className, &params);
 }
 

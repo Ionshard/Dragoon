@@ -36,7 +36,7 @@ static bool jumpHeld;
 void G_drawHud(void)
 {
         RSprite_lookAt(&cursor, muzzle);
-        RSprite_center(&cursor, aim, CVec_zero());
+        RSprite_center(&cursor, aim, CVec(0, 0));
         RSprite_draw(&cursor);
 }
 
@@ -82,7 +82,7 @@ static int playerEvent(PEntity *entity, int event, void *args)
                                  playerEntity.size.x / 2.f;
                 RSprite_center(&playerBody, playerEntity.origin,
                                playerEntity.size);
-                RSprite_center(&playerWeapon, muzzle, CVec_zero());
+                RSprite_center(&playerWeapon, muzzle, CVec(0, 0));
                 RSprite_center(&playerHead, playerEntity.origin,
                                playerEntity.size);
 
@@ -98,7 +98,7 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 }
                 RSprite_center(&playerBody, playerEntity.origin,
                                playerEntity.size);
-                RSprite_center(&playerWeapon, muzzle, CVec_zero());
+                RSprite_center(&playerWeapon, muzzle, CVec(0, 0));
                 RSprite_center(&playerHead, playerEntity.origin,
                                playerEntity.size);
 

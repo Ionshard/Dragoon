@@ -520,7 +520,7 @@ void PEntity_update(PEntity *entity)
         PEntity_event(entity, PE_PHYSICS_DONE, NULL);
 
         /* Acceleration vector is reset every frame */
-        entity->accel = CVec_zero();
+        entity->accel = CVec(0, 0);
 
         /* Entity might have died */
         if (entity->dead)

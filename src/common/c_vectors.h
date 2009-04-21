@@ -32,8 +32,6 @@ typedef struct CColor {
  Construct a vector from x/y parameters.
 \******************************************************************************/
 #define CVec(x, y) CVec_xy(x, y)
-#define CVec_one() CVec_xy(1.f, 1.f)
-#define CVec_zero() CVec_xy(0.f, 0.f)
 static inline CVec CVec_xy(float x, float y)
 {
         CVec result = { x, y };

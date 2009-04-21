@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         else if (g_play[0])
                 G_newGame();
         else {
-                G_loadMap("map/limbo", CVec_zero());
+                G_loadMap("map/limbo", CVec(0, 0));
                 G_showMenu();
         }
 

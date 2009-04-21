@@ -49,7 +49,7 @@ static int GParticle_eventFunc(GParticle *particle, int event, void *args)
                 if (particle->entity.size.x || particle->entity.size.y)
                         particle->sprite.size = particle->entity.size;
                 RSprite_center(&particle->sprite, particle->entity.origin,
-                               CVec_zero());
+                               CVec(0, 0));
 
                 /* Orient toward movement direction */
                 particle->sprite.angle = CVec_angle(particle->entity.velocity) -

@@ -19,7 +19,7 @@ void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod)
 {
         RVertex verts[4];
 
-        if (z > 0.f || !CVec_intersect(origin, size, CVec_zero(),
+        if (z > 0.f || !CVec_intersect(origin, size, CVec(0, 0),
                                        CVec(r_widthScaled, r_heightScaled)))
                 return;
 

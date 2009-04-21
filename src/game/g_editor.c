@@ -35,7 +35,7 @@ void G_initEditor(void)
 {
         if (!g_edit[0])
                 return;
-        G_loadMap(g_edit, CVec_zero());
+        G_loadMap(g_edit, CVec(0, 0));
         editEntity = NULL;
         editClass = NULL;
 
@@ -64,7 +64,7 @@ static void pickEntity(void)
                 editSizing = FALSE;
                 return;
         }
-        if (!(len = P_entsInBox_buf(mouseWorld, CVec_one(), PIT_ALL, ents)))
+        if (!(len = P_entsInBox_buf(mouseWorld, CVec(1, 1), PIT_ALL, ents)))
                 return;
 
         /* Find the nearest entity */
