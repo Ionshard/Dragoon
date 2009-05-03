@@ -94,7 +94,7 @@ void P_updateEntities(void);
 
 extern CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 extern CCount p_countEntities;
-extern float p_frameSec, p_speed;
+extern float p_frameSec, p_gravity, p_speed;
 extern int p_timeMsec, p_frameMsec;
 
 /* PTrace.c */

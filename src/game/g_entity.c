@@ -126,6 +126,23 @@ void G_parseEntityCfg(const char *filename)
 }
 
 /******************************************************************************\
+ Parse impact type.
+\******************************************************************************/
+PImpactType G_token_impact(FILE *file)
+{
+        const char *token;
+
+        token = C_token(file);
+        if (!strcasecmp(token, "world"))
+                return PIT_WORLD;
+        else if (!strcasecmp(token, "entity"))
+                return PIT_ENTITY;
+        else if (strcasecmp(token, "none"))
+                C_warning("Unknown impact type '%s'", token);
+        return PIT_NONE;
+}
+
+/******************************************************************************\
  Sort a newly spawned entity into the proper z order.
 \******************************************************************************/
 void G_depthSortEntity(PEntity *entity)

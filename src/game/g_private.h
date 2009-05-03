@@ -60,6 +60,7 @@ void G_depthSortEntity(PEntity *);
 void G_pushBackEntity(PEntity *);
 void G_pushForwardEntity(PEntity *);
 PEntity *G_spawn(const char *className);
+PImpactType G_token_impact(FILE *);
 
 extern CNamed *g_classRoot;
 

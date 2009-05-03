@@ -15,7 +15,9 @@
 /* Box class */
 typedef struct GBoxClass {
         GEntityClass entity;
-        PImpactType impactType;
+        PImpactType impact, impactOther;
+        float mass, elasticity;
+        bool debugPhysics;
 } GBoxClass;
 
 /* Box entity */
@@ -29,10 +31,24 @@ typedef struct GBox {
 \******************************************************************************/
 int GBox_eventFunc(GBox *box, int event, void *args)
 {
+        GBoxClass *boxClass = box->entity.entityClass;
+
         if (event == PE_UPDATE) {
                 box->sprite.origin = box->entity.origin;
                 box->sprite.size = box->entity.size;
                 RSprite_draw(&box->sprite);
+        } else if (CHECKED && boxClass->debugPhysics) {
+                if (event == PE_PHYSICS) {
+                        C_dump("y.txt", "%d\t%.2f", c_frame,
+                               box->entity.origin.y);
+                        C_dump("vel.txt", "%d\t%.2f", c_frame,
+                               box->entity.velocity.y);
+                } else if (event == PE_PHYSICS_DONE) {
+                        C_dump("y.txt", "\t%.2f\n",
+                               box->entity.origin.y);
+                        C_dump("vel.txt", "\t%.2f\n",
+                               box->entity.velocity.y);
+                }
         }
         return 0;
 }
@@ -46,11 +62,13 @@ GBox *GBox_spawn(GBoxClass *boxClass)
 
         C_new(&box);
         RSprite_init(&box->sprite, boxClass->entity.spriteName);
-        box->sprite.z = boxClass->entity.z;
         box->entity.eventFunc = (PEventFunc)GBox_eventFunc;
+        box->sprite.z = boxClass->entity.z;
+        box->entity.mass = boxClass->mass;
+        box->entity.elasticity = boxClass->elasticity;
+        box->entity.impactOther = boxClass->impactOther;
         PEntity_spawn(&box->entity, "Box");
-        if (boxClass->impactType != PIT_NONE)
-                PEntity_impact(&box->entity, boxClass->impactType);
+        PEntity_impact(&box->entity, boxClass->impact);
         return box;
 }
 
@@ -79,15 +97,24 @@ void GBox_parseClass(FILE *file, const char *className)
                 if (GEntityClass_parseToken(&boxClass->entity, file, token));
 
                 /* Impact class */
-                else if (!strcasecmp(token, "impact")) {
-                        token = C_token(file);
-                        if (!strcasecmp(token, "world"))
-                                boxClass->impactType = PIT_WORLD;
-                        else if (!strcasecmp(token, "entity"))
-                                boxClass->impactType = PIT_ENTITY;
-                        else
-                                C_warning("Unknown impact type '%s'", token);
-                }
+                else if (!strcasecmp(token, "impact"))
+                        boxClass->impact = G_token_impact(file);
+
+                /* Impact-other class */
+                else if (!strcasecmp(token, "impactOther"))
+                        boxClass->impactOther = G_token_impact(file);
+
+                /* Mass */
+                else if (!strcasecmp(token, "mass"))
+                        boxClass->mass = C_token_float(file);
+
+                /* Elasticity */
+                else if (!strcasecmp(token, "elasticity"))
+                        boxClass->elasticity = C_token_float(file);
+
+                /* Debug physics */
+                else if (CHECKED && !strcasecmp(token, "debugPhysics"))
+                        boxClass->debugPhysics = TRUE;
 
                 else
                         C_warning("Unknown box param '%s'", token);

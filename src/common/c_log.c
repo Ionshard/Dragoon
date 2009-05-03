@@ -73,3 +73,21 @@ void C_log(CLogLevel level, const char *func, const char *fmt, ...)
                 abort();
 }
 
+/******************************************************************************\
+ Dump data to an output file.
+\******************************************************************************/
+#if CHECKED
+void C_dump(const char *filename, const char *fmt, ...)
+{
+        FILE *file;
+        va_list va;
+
+        if (!(file = fopen(filename, "a")))
+                return;
+        va_start(va, fmt);
+        vfprintf(file, fmt, va);
+        va_end(va);
+        fclose(file);
+}
+#endif
+

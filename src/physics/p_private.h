@@ -13,3 +13,10 @@
 #include "../common/c_public.h"
 #include "p_public.h"
 
+/* Limit the length of time a physics frame will simulate to account for
+   lagged frames and gdb debugging */
+#define P_FRAME_MSEC_MAX (1000 / 30)
+
+/* PEntity_physics.c */
+void PEntity_physics(PEntity *entity, float delT);
+

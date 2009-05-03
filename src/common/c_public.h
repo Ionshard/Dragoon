@@ -171,10 +171,12 @@ void CLink_remove(CLink *);
 #if CHECKED
 #define C_assert(s) C_assert_full((int)(s), __func__, #s)
 void C_assert_full(int eval, const char *func, const char *statement);
+void C_dump(const char *file, const char *fmt, ...);
 #define C_debug(fmt, ...) C_log(CLL_DEBUG, __func__, fmt, ## __VA_ARGS__)
 #else
-#define C_assert(s)
-#define C_debug(...)
+#define C_assert(s) ;
+#define C_debug(...) ;
+#define C_dump(...) ;
 #endif
 void C_log(CLogLevel, const char *file, const char *fmt, ...);
 #define C_error(fmt, ...) C_log(CLL_ERROR, __func__, fmt, ## __VA_ARGS__)
