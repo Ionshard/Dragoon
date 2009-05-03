@@ -12,8 +12,11 @@
 
 #include "p_private.h"
 
-/* Distance below a entity to trace to look for ground */
-#define GROUND_DIST 0.003125f
+/* A tiny distance used to guard against floating point errors */
+#define EPSILON_DIST 0.0001f
+
+/* Distance below a entity to check for ground/walls */
+#define CLIP_DIST 0.5f
 
 /* Limit the length of time a physics frame will simulate to account for
    lagged frames and gdb debugging */
@@ -278,7 +281,7 @@ static bool PEntity_stepOver(PEntity *entity, PEntity *other)
         entity->origin = to;
 
         /* Trace forward a little bit */
-        to.x += entity->velocity.x > 0 ? GROUND_DIST : -GROUND_DIST;
+        to.x += entity->velocity.x > 0 ? EPSILON_DIST : -EPSILON_DIST;
         trace = PEntity_trace(entity, to);
         if (trace.prop < 1.f) {
                 entity->origin = oldOrigin;
@@ -308,7 +311,10 @@ static void PEntity_clipAccel(PEntity *entity)
                 link = p_linkAll;
 
         /* Iterate over collision class linked list */
+        entity->ceiling = NULL;
         entity->ground = NULL;
+        entity->leftWall = NULL;
+        entity->rightWall = NULL;
         for (; link; link = CLink_next(link)) {
                 PEntity *other;
 
@@ -317,43 +323,43 @@ static void PEntity_clipAccel(PEntity *entity)
                 C_assert(other);
 
                 /* Horizontal */
-                if (entity->accel.x &&
-                    other->origin.y < entity->origin.y + entity->size.y &&
+                if (other->origin.y < entity->origin.y + entity->size.y &&
                     other->origin.y + other->size.y > entity->origin.y) {
 
                         /* Clip left */
-                        if (entity->accel.x < 0) {
-                                if (fabsf(entity->origin.x - other->origin.x -
-                                          other->size.x) <= GROUND_DIST)
-                                        entity->accel.x = 0;
-                        }
+                        if (fabsf(entity->origin.x - other->origin.x -
+                                  other->size.x) <= CLIP_DIST)
+                                entity->leftWall = other;
 
                         /* Clip right */
                         else if (fabsf(entity->origin.x + entity->size.x -
-                                       other->origin.x) <= GROUND_DIST)
-                                entity->accel.x = 0;
+                                       other->origin.x) <= CLIP_DIST)
+                                entity->rightWall = other;
                 }
 
                 /* Vertical */
-                if (!entity->accel.y ||
-                    other->origin.x >= entity->origin.x + entity->size.x ||
-                    other->origin.x + other->size.x <= entity->origin.x)
-                        continue;
+                if (other->origin.x < entity->origin.x + entity->size.x &&
+                    other->origin.x + other->size.x > entity->origin.x) {
 
-                /* Clip up */
-                if (entity->accel.y < 0) {
+                        /* Clip up */
                         if (fabsf(entity->origin.y - other->origin.y -
-                                  other->size.y) <= GROUND_DIST)
-                                entity->accel.y = 0;
-                }
+                                  other->size.y) <= CLIP_DIST)
+                                entity->ceiling = other;
 
-                /* Clip down (ground) */
-                else if (fabsf(entity->origin.y + entity->size.y -
-                               other->origin.y) <= GROUND_DIST) {
-                        entity->accel.y = 0;
-                        entity->ground = other;
+                        /* Clip down */
+                        else if (fabsf(entity->origin.y + entity->size.y -
+                                       other->origin.y) <= CLIP_DIST)
+                                entity->ground = other;
                 }
         }
+
+        /* Clip acceleration */
+        if ((entity->leftWall && entity->accel.x < 0) ||
+            (entity->rightWall && entity->accel.x > 0))
+                entity->accel.x = 0;
+        if ((entity->ceiling && entity->accel.y < 0) ||
+            (entity->ground && entity->accel.y > 0))
+                entity->accel.y = 0;
 }
 
 /******************************************************************************\

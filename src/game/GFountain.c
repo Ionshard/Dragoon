@@ -93,6 +93,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         RSprite_init(&particle->sprite, fountainClass->entity.spriteName);
         particle->sprite.z = fountainClass->entity.z;
         particle->entity.eventFunc = (PEventFunc)GParticle_eventFunc;
+        particle->entity.entityClass = fountain->entity.entityClass;
         particle->entity.origin = fountain->entity.origin;
         particle->entity.size = fountain->entity.size;
         particle->entity.drag = fountainClass->drag;
@@ -108,7 +109,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         if (fountainClass->noGravity)
                 particle->entity.fly = TRUE;
         PEntity_spawn(&particle->entity, "Particle");
-        G_depthSortEntity(&particle->entity, particle->sprite.z);
+        G_depthSortEntity(&particle->entity);
 
         /* Check if we are done spawning particles */
         if (fountain->particles > 0 && !--fountain->particles) {
@@ -124,8 +125,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
 /******************************************************************************\
  Spawn a particle fountain.
 \******************************************************************************/
-GFountain *GFountain_spawn(GFountainClass *fountainClass,
-                           const GSpawnParams *params)
+GFountain *GFountain_spawn(GFountainClass *fountainClass)
 {
         GFountain *fountain;
 
@@ -133,8 +133,6 @@ GFountain *GFountain_spawn(GFountainClass *fountainClass,
         RSprite_init(&fountain->sprite, fountainClass->entity.spriteName);
         fountain->sprite.z = fountainClass->entity.z;
         fountain->entity.eventFunc = (PEventFunc)GFountain_eventFunc;
-        fountain->entity.origin = params->origin;
-        fountain->entity.size = params->size;
         fountain->intervalNext = c_timeMsec + fountainClass->interval +
                                  C_rand() * fountainClass->intervalRand;
         if ((fountain->particles = fountainClass->particles) > 0)

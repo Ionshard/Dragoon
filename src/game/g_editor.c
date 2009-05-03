@@ -87,7 +87,6 @@ static void pickEntity(void)
 \******************************************************************************/
 static bool selectEntity(int key)
 {
-        GSpawnParams params;
         GEntityClass *entClass;
 
         /* Select the next entity class */
@@ -127,10 +126,12 @@ static bool selectEntity(int key)
         editSizing = FALSE;
 
         /* Spawn new edit entity */
-        params.origin = mouseWorld;
-        params.size = entClass->size;
-        editClass = (editEntity = G_spawn(entClass->named.name, &params)) ?
-                    entClass : NULL;
+        if ((editEntity = G_spawn(entClass->named.name))) {
+                editEntity->origin = mouseWorld;
+                editEntity->size = entClass->size;
+                editClass = entClass;
+        } else
+                editClass = NULL;
         editOffset = CVec_clamp(CVec_divf(editEntity->size, -2), 1);
         editEntity->origin = CVec_add(editEntity->origin, editOffset);
         return TRUE;

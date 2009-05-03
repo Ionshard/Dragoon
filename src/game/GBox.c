@@ -27,7 +27,7 @@ typedef struct GBox {
 /******************************************************************************\
  Box event function.
 \******************************************************************************/
-static int GBox_eventFunc(GBox *box, int event, void *args)
+int GBox_eventFunc(GBox *box, int event, void *args)
 {
         if (event == PE_UPDATE) {
                 box->sprite.origin = box->entity.origin;
@@ -40,7 +40,7 @@ static int GBox_eventFunc(GBox *box, int event, void *args)
 /******************************************************************************\
  Spawn a fixture box.
 \******************************************************************************/
-GBox *GBox_spawn(GBoxClass *boxClass, const GSpawnParams *params)
+GBox *GBox_spawn(GBoxClass *boxClass)
 {
         GBox *box;
 
@@ -48,8 +48,6 @@ GBox *GBox_spawn(GBoxClass *boxClass, const GSpawnParams *params)
         RSprite_init(&box->sprite, boxClass->entity.spriteName);
         box->sprite.z = boxClass->entity.z;
         box->entity.eventFunc = (PEventFunc)GBox_eventFunc;
-        box->entity.origin = params->origin;
-        box->entity.size = params->size;
         PEntity_spawn(&box->entity, "Box");
         if (boxClass->impactType != PIT_NONE)
                 PEntity_impact(&box->entity, boxClass->impactType);

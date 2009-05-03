@@ -21,7 +21,6 @@ CNamed *g_classRoot;
 void GEntityClass_init(GEntityClass *entity)
 {
         entity->z = G_Z_MID;
-        entity->editorKey = '`';
 }
 
 /******************************************************************************\
@@ -115,6 +114,10 @@ void G_parseEntityCfg(const char *filename)
                         GBox_parseClass(file, className);
                 else if (!strcasecmp(baseName, "fountain"))
                         GFountain_parseClass(file, className);
+                else if (!strcasecmp(baseName, "group"))
+                        GGroup_parseClass(file, className);
+                else if (!strcasecmp(baseName, "missile"))
+                        GMissile_parseClass(file, className);
                 else
                         C_warning("Unknown entity base '%s'", baseName);
                 C_closeBrace(file);
@@ -125,11 +128,15 @@ void G_parseEntityCfg(const char *filename)
 /******************************************************************************\
  Sort a newly spawned entity into the proper z order.
 \******************************************************************************/
-void G_depthSortEntity(PEntity *entity, float z)
+void G_depthSortEntity(PEntity *entity)
 {
         GEntityClass *otherClass;
         PEntity *other;
+        float z;
 
+        if (!entity || !entity->entityClass)
+                return;
+        z = ((GEntityClass *)entity->entityClass)->z;
         while (CLink_prev(&entity->linkAll)) {
                 other = CLink_get(CLink_prev(&entity->linkAll));
                 otherClass = (GEntityClass *)other->entityClass;
@@ -142,28 +149,22 @@ void G_depthSortEntity(PEntity *entity, float z)
 /******************************************************************************\
  Spawn a named entity.
 \******************************************************************************/
-PEntity *G_spawn(const char *className, const GSpawnParams *params)
+PEntity *G_spawn(const char *className)
 {
         GEntityClass *entityClass;
         PEntity *entity;
 
+        if (!className || !*className)
+                return NULL;
         if (!(entityClass = CNamed_get(g_classRoot, className))) {
                 C_warning("Class '%s' not found", className);
                 return NULL;
         }
-        if ((entity = entityClass->spawnFunc(entityClass, params)))
+        if ((entity = entityClass->spawnFunc(entityClass))) {
                 entity->entityClass = entityClass;
-        G_depthSortEntity(entity, entityClass->z);
+                G_depthSortEntity(entity);
+        }
         return entity;
-}
-
-PEntity *G_spawn_at(const char *className, CVec origin)
-{
-        GSpawnParams params;
-
-        params.origin = origin;
-        params.size = CVec(0, 0);
-        return G_spawn(className, &params);
 }
 
 /******************************************************************************\

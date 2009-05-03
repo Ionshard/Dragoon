@@ -13,12 +13,15 @@
 #include "g_private.h"
 
 /* Player movement parameters */
-#define JUMP_V -200
+#define JUMP_V 150
+#define JUMP_DELAY 50
+#define WALLJUMP_VX (JUMP_V / C_SQRT2)
+#define WALLJUMP_VY (JUMP_V / C_SQRT2)
 #define GROUND_A 800
 #define AIR_MOVE 0.2
 
 /* Weapon delays */
-#define CANNON_DELAY 500
+#define CANNON_DELAY 300
 
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
@@ -27,7 +30,7 @@ static GEntityClass playerClass;
 static PEntity playerEntity;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
 static CVec aim, muzzle;
-static int fireDelay;
+static int fireDelay, jumpDelay;
 static bool jumpHeld;
 
 /******************************************************************************\
@@ -113,6 +116,45 @@ static int playerEvent(PEntity *entity, int event, void *args)
 }
 
 /******************************************************************************\
+ Checks if the player can jump and handles the acceleration.
+\******************************************************************************/
+static void checkJump(void)
+{
+        /* Release jump */
+        if (g_control.y >= 0)
+                jumpHeld = FALSE;
+
+        /* Can't jump yet */
+        if ((jumpDelay -= p_frameMsec) < 0)
+                jumpDelay = 0;
+        else
+                return;
+
+        /* Don't want to jump */
+        if (jumpHeld || g_control.y >= 0)
+                return;
+
+        /* Jump off of a surface */
+        if (playerEntity.ground) {
+                if (playerEntity.velocity.y > -JUMP_V)
+                        playerEntity.velocity.y = -JUMP_V;
+        } else if (playerEntity.rightWall) {
+                if (playerEntity.velocity.x > -WALLJUMP_VX)
+                        playerEntity.velocity.x = -WALLJUMP_VX;
+                playerEntity.velocity.y -= WALLJUMP_VY;
+        } else if (playerEntity.leftWall) {
+                if (playerEntity.velocity.x < WALLJUMP_VX)
+                        playerEntity.velocity.x = WALLJUMP_VX;
+                playerEntity.velocity.y -= WALLJUMP_VY;
+        } else
+                return;
+
+        /* Jumped somehow */
+        jumpHeld = TRUE;
+        jumpDelay = JUMP_DELAY;
+}
+
+/******************************************************************************\
  Player must be updated outside of normal entities once per frame because the
  player entity's motion affects the camera.
 \******************************************************************************/
@@ -122,6 +164,7 @@ void G_updatePlayer(void)
 
         if (!CLink_linked(&playerEntity.linkAll))
                 return;
+        checkJump();
 
         /* Fire wait time */
         if ((fireDelay -= p_frameMsec) < 0)
@@ -134,18 +177,9 @@ void G_updatePlayer(void)
         else if (g_control.x < 0)
                 accelX -= GROUND_A;
 
-        /* Release jump */
-        if (g_control.y >= 0)
-                jumpHeld = FALSE;
-
         /* On the ground */
         if (playerEntity.ground) {
                 playerEntity.accel.x += accelX;
-                if (!jumpHeld && g_control.y < 0 &&
-                    playerEntity.velocity.y > JUMP_V) {
-                        jumpHeld = TRUE;
-                        playerEntity.velocity.y = JUMP_V;
-                }
                 RSprite_play(&playerBody,
                              g_control.x ? "playerBodyRun" : "playerBody");
         }
@@ -187,7 +221,7 @@ bool G_dispatch_player(GEvent event)
         else if (event == GE_MOUSE_DOWN && g_button == SDL_BUTTON_RIGHT &&
                  fireDelay <= 0) {
                 RSprite_play(&playerWeapon, "repelCannon");
-                G_fireMissile(&playerEntity, muzzle, aim, 3);
+                G_fireMissile(&playerEntity, "repelMissile", muzzle, aim);
                 fireDelay += CANNON_DELAY;
         }
 
@@ -229,6 +263,6 @@ void G_spawnPlayer(CVec origin)
         playerEntity.stepSize = 8;
         PEntity_spawn(&playerEntity, "Player");
         PEntity_impact(&playerEntity, PIT_ENTITY);
-        G_depthSortEntity(&playerEntity, playerClass.z);
+        G_depthSortEntity(&playerEntity);
 }
 

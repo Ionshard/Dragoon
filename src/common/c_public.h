@@ -55,6 +55,7 @@
 
 /* Single-precision mathematical constants */
 #define C_PI 3.14159265358979323846f
+#define C_SQRT2 1.414213562373095f
 
 /* Maximum length of a name */
 #define C_NAME_MAX 256

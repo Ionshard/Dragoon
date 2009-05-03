@@ -23,6 +23,10 @@ void P_pushRadius(CVec origin, PImpactType impactType,
         CVec dir;
         float dist;
 
+        /* No push */
+        if (!speed || dist_max <= 0)
+                return;
+
         /* Impact class */
         link = p_linkEntity;
         if (impactType == PIT_WORLD)

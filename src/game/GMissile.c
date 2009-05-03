@@ -12,8 +12,15 @@
 
 #include "g_private.h"
 
+/* Missile class definition */
+typedef struct GMissileClass {
+        GEntityClass entity;
+        float pushForce, pushRadius, size, velocity, lead;
+        char impactEntity[C_NAME_MAX];
+} GMissileClass;
+
 /* Missile entity */
-typedef struct {
+typedef struct GMissile {
         PEntity entity, *parent;
         RSprite sprite;
 } GMissile;
@@ -23,7 +30,12 @@ typedef struct {
 \******************************************************************************/
 static int GMissile_eventFunc(GMissile *mis, int event, void *args)
 {
+        GMissileClass *class;
+        PEntity *entity;
         CVec origin;
+
+        class = mis->entity.entityClass;
+        C_assert(class);
 
         /* Ensure parent pointer is valid */
         if (mis->parent && mis->parent->dead)
@@ -31,13 +43,15 @@ static int GMissile_eventFunc(GMissile *mis, int event, void *args)
 
         switch (event) {
         case PE_IMPACT:
-                C_assert(((PEventImpact *)args)->other != mis->parent);
+                C_assert(!mis->parent ||
+                         ((PEventImpact *)args)->other != mis->parent);
                 PEntity_kill(&mis->entity);
                 origin = CVec_add(mis->entity.origin,
                                   CVec_divf(mis->entity.size, 2));
-                P_pushRadius(origin, PIT_ENTITY, 200, 200);
-                G_spawn_at("repelImpact", origin);
-                G_spawn_at("repelFlash", origin);
+                P_pushRadius(origin, PIT_ENTITY,
+                             class->pushForce, class->pushRadius);
+                if ((entity = G_spawn(class->impactEntity)))
+                        entity->origin = origin;
                 return TRUE;
         case PE_UPDATE:
                 RSprite_center(&mis->sprite, mis->entity.origin,
@@ -60,28 +74,113 @@ static int GMissile_eventFunc(GMissile *mis, int event, void *args)
 }
 
 /******************************************************************************\
- Spawn a missile entity.
+ Spawn a missile instance.
 \******************************************************************************/
-void G_fireMissile(PEntity *parent, CVec from, CVec to, int size)
+GMissile *GMissile_spawn(GMissileClass *misClass)
 {
         GMissile *mis;
-        CVec dir;
 
-        dir = CVec_norm(CVec_sub(to, from));
         C_new(&mis);
-        RSprite_init(&mis->sprite, "missile");
-        mis->parent = parent;
+        RSprite_init(&mis->sprite, misClass->entity.spriteName);
         mis->sprite.z = G_Z_MID;
         mis->entity.eventFunc = (PEventFunc)GMissile_eventFunc;
-        mis->entity.size = CVec(size, size);
-        mis->entity.origin = CVec_add(CVec_sub(from,
-                                               CVec_divf(mis->entity.size, 2)),
-                                      CVec_scalef(dir, 4));
+        mis->entity.size = CVec(misClass->size, misClass->size);
         mis->entity.mass = 1;
         mis->entity.fly = TRUE;
         mis->entity.impactOther = PIT_ENTITY;
-        mis->entity.velocity = CVec_scalef(dir, 400);
         PEntity_spawn(&mis->entity, "Missile");
-        G_depthSortEntity(&mis->entity, mis->sprite.z);
+        return mis;
+}
+
+/******************************************************************************\
+ Parse a missile class definition.
+\******************************************************************************/
+void GMissile_parseClass(FILE *file, const char *className)
+{
+        GMissileClass *misClass;
+        const char *token;
+
+        if (!(misClass = CNamed_alloc(&g_classRoot, className,
+                                      sizeof (GMissileClass),
+                                      NULL, CNP_NULL))) {
+                C_warning("Class '%s' already defined", className);
+                return;
+        }
+        GEntityClass_init(&misClass->entity);
+        misClass->entity.spawnFunc = (GSpawnFunc)GMissile_spawn;
+
+        /* Sprite defaults to class name */
+        C_strncpy_buf(misClass->entity.spriteName, className);
+        misClass->entity.size = R_spriteSize(className);
+
+        /* Parse missile class parameters */
+        for (token = C_token(file); token[0]; token = C_token(file))
+                if (GEntityClass_parseToken(&misClass->entity, file, token));
+
+                /* Impact push params */
+                else if (!strcasecmp(token, "impactPush") &&
+                         C_openBrace(file)) {
+                        misClass->pushForce = C_token_float(file);
+                        misClass->pushRadius = C_token_float(file);
+                        C_closeBrace(file);
+                }
+
+                /* Impact spawn entity */
+                else if (!strcasecmp(token, "impactEntity"))
+                        C_strncpy_buf(misClass->impactEntity, C_token(file));
+
+                /* Size */
+                else if (!strcasecmp(token, "size"))
+                        misClass->size = C_token_float(file);
+
+                /* Launch velocity */
+                else if (!strcasecmp(token, "velocity"))
+                        misClass->velocity = C_token_float(file);
+
+                /* Launch lead distance */
+                else if (!strcasecmp(token, "lead"))
+                        misClass->lead = C_token_float(file);
+
+                else
+                        C_warning("Unknown missile param '%s'", token);
+}
+
+/******************************************************************************\
+ Spawn a missile entity.
+\******************************************************************************/
+GMissile *G_fireMissile(PEntity *parent, const char *className,
+                        CVec from, CVec at)
+{
+        GMissile *mis;
+        GMissileClass *misClass;
+        CVec dir;
+
+        if (!(mis = (GMissile *)G_spawn(className)))
+                return NULL;
+        misClass = mis->entity.entityClass;
+        if ((void *)misClass->entity.spawnFunc != (void *)GMissile_spawn) {
+                C_warning("Class '%s' is not a missile", className);
+                return NULL;
+        }
+        from = CVec_sub(from, CVec_divf(mis->entity.size, 2));
+        dir = CVec_norm(CVec_sub(at, from));
+        mis->entity.origin = from;
+        mis->entity.velocity = CVec_scalef(dir, misClass->velocity);
+        mis->parent = parent;
+
+        /* Trace lead distance */
+        if (misClass->lead) {
+                PTrace trace;
+
+                if (parent)
+                        parent->ignore = TRUE;
+                at = CVec_add(from, CVec_scalef(dir, misClass->lead));
+                trace = PEntity_trace(&mis->entity, at);
+                mis->entity.origin = trace.position;
+                if (parent)
+                        parent->ignore = FALSE;
+        }
+
+        return mis;
 }
 

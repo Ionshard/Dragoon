@@ -38,11 +38,11 @@ typedef enum {
 } GEvent;
 
 /* Entity class spawning function */
-struct GSpawnParams;
-typedef PEntity *(*GSpawnFunc)(void *entityClass, const struct GSpawnParams *);
+struct GEntityClass;
+typedef PEntity *(*GSpawnFunc)(struct GEntityClass *);
 
 /* Entity class struct */
-typedef struct {
+typedef struct GEntityClass {
         CNamed named;
         GSpawnFunc spawnFunc;
         CVec size;
@@ -50,22 +50,16 @@ typedef struct {
         char editorKey, spriteName[C_NAME_MAX];
 } GEntityClass;
 
-/* Entity spawn parameters */
-typedef struct GSpawnParams {
-        CVec origin, size;
-} GSpawnParams;
-
 /* g_editor.c */
 bool G_dispatch_editor(GEvent);
 
 /* g_entity.c */
 void GEntityClass_init(GEntityClass *);
 bool GEntityClass_parseToken(GEntityClass *, FILE *, const char *token);
-void G_depthSortEntity(PEntity *, float z);
+void G_depthSortEntity(PEntity *);
 void G_pushBackEntity(PEntity *);
 void G_pushForwardEntity(PEntity *);
-PEntity *G_spawn(const char *className, const GSpawnParams *);
-PEntity *G_spawn_at(const char *className, CVec);
+PEntity *G_spawn(const char *className);
 
 extern CNamed *g_classRoot;
 
@@ -73,14 +67,16 @@ extern CNamed *g_classRoot;
 struct GBox;
 struct GBoxClass;
 void GBox_parseClass(FILE *file, const char *className);
-struct GBox *GBox_spawn(struct GBoxClass *, const GSpawnParams *);
+struct GBox *GBox_spawn(struct GBoxClass *);
 
 /* GFountain.c */
 struct GFountain;
 struct GFountainClass;
 void GFountain_parseClass(FILE *, const char *className);
-struct GFountain *GFountain_spawn(struct GFountainClass *,
-                                  const GSpawnParams *);
+struct GFountain *GFountain_spawn(struct GFountainClass *);
+
+/* GGroup.c */
+void GGroup_parseClass(FILE *, const char *className);
 
 /* g_input.c */
 bool G_controlEvent(GEvent);
@@ -96,7 +92,9 @@ void G_hideMenu(void);
 extern bool g_limbo;
 
 /* GMissile.c */
-void G_fireMissile(PEntity *parent, CVec from, CVec to, int size);
+struct GMissile *G_fireMissile(PEntity *parent, const char *className,
+                               CVec from, CVec at);
+void GMissile_parseClass(FILE *, const char *className);
 
 /* g_player.c */
 bool G_dispatch_player(GEvent);

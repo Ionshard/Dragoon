@@ -49,7 +49,7 @@ typedef int (*PEventFunc)(void *data, int type, void *eventArgs);
 /* Base structure for physics entities */
 typedef struct PEntity {
         char name[64];
-        struct PEntity *ground;
+        struct PEntity *ground, *ceiling, *rightWall, *leftWall;
         PEventFunc eventFunc;
         PImpactType impactOther;
         CLink linkAll, linkWorld, linkEntity;

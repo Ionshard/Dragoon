@@ -12,12 +12,18 @@
 
 #include "g_private.h"
 
+/* Saved entity parameters */
+typedef struct {
+        CVec origin, size;
+} SpawnParams;
+
 /******************************************************************************\
  Load a map file into the current world.
 \******************************************************************************/
 void G_loadMap(const char *filename, CVec offset)
 {
-        GSpawnParams params;
+        SpawnParams params;
+        PEntity *entity;
         FILE *file;
         const char *className;
         int entities;
@@ -38,8 +44,9 @@ void G_loadMap(const char *filename, CVec offset)
                 if (!(className = C_readString(file, NULL))[0])
                         break;
                 C_fread(file, &params, sizeof (params));
-                params.origin = CVec_add(params.origin, offset);
-                G_spawn(className, &params);
+                entity = G_spawn(className);
+                entity->origin = CVec_add(params.origin, offset);
+                entity->size = params.size;
         }
         fclose(file);
         C_debug("Loaded map '%s', %d entities", filename, entities);
@@ -50,7 +57,7 @@ void G_loadMap(const char *filename, CVec offset)
 \******************************************************************************/
 void G_saveMap(const char *filename)
 {
-        GSpawnParams params;
+        SpawnParams params;
         GEntityClass *entityClass;
         PEntity *entity;
         CLink *link;
