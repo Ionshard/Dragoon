@@ -46,12 +46,22 @@ static void parseTileSection(FILE *file, RSpriteData *data)
         if (!C_openBrace(file))
                 return;
         for (token = C_token(file); token[0]; token = C_token(file))
-                if (!strcasecmp(token, "global"))
+
+                /* Tile with respect to a global origin */
+                if (!strcasecmp(token, "global")) {
                         data->tile = RST_TILE_GLOBAL;
+                        if (C_openBrace(file)) {
+                                data->tileOrigin = C_token_vec(file);
+                                C_closeBrace(file);
+                        }
+                }
+
+                /* Parallax motion */
                 else if (!strcasecmp(token, "parallax")) {
                         data->tile = RST_TILE_PARALLAX;
                         data->parallax = C_token_float(file);
                 }
+
         C_closeBrace(file);
 }
 
@@ -167,8 +177,6 @@ void R_parseSpriteSection(FILE *file, const char *name)
                 else
                         C_warning("Unknown sprite param '%s'", token);
 
-        C_closeBrace(file);
-
         /* Defaults */
         if (!haveBox)
                 data->boxSize = RTexture_size(data->texture);
@@ -241,6 +249,7 @@ void R_parseSpriteCfg(const char *filename)
 
                 /* Parse sprite section */
                 R_parseSpriteSection(file, token);
+                C_closeBrace(file);
         }
         fclose(file);
 }

@@ -124,12 +124,12 @@ static void RSprite_draw_window(RSprite *sprite, bool smooth)
                         corner_prop.y = 1;
 
                 /* First render the non-tiling portions */
-                RTexture_select(data->texture, TRUE, data->additive);
+                RTexture_select(data->texture, smooth, data->additive);
                 glInterleavedArrays(RV_FORMAT, 0, verts);
                 glDrawElements(GL_QUADS, 16, GL_UNSIGNED_SHORT, indices);
 
                 /* Top quad */
-                RTexture_select(data->edges[0], TRUE, data->additive);
+                RTexture_select(data->edges[0], smooth, data->additive);
                 corners = CVec_scalef(data->corner, 2);
                 uvSize = CVec_div(CVec_sub(sprite->size, corners),
                                   CVec_sub(data->boxSize, corners));
@@ -145,7 +145,7 @@ static void RSprite_draw_window(RSprite *sprite, bool smooth)
                 glDrawArrays(GL_QUADS, 0, 4);
 
                 /* Bottom quad */
-                RTexture_select(data->edges[3], TRUE, data->additive);
+                RTexture_select(data->edges[3], smooth, data->additive);
                 tVerts[0].co = verts[10].co;
                 tVerts[1].co = verts[13].co;
                 tVerts[2].co = verts[14].co;
@@ -154,7 +154,7 @@ static void RSprite_draw_window(RSprite *sprite, bool smooth)
                 glDrawArrays(GL_QUADS, 0, 4);
 
                 /* Left quad */
-                RTexture_select(data->edges[1], TRUE, data->additive);
+                RTexture_select(data->edges[1], smooth, data->additive);
                 tVerts[0].co = verts[1].co;
                 tVerts[1].co = verts[11].co;
                 tVerts[2].co = verts[10].co;
@@ -166,7 +166,7 @@ static void RSprite_draw_window(RSprite *sprite, bool smooth)
                 glDrawArrays(GL_QUADS, 0, 4);
 
                 /* Right quad */
-                RTexture_select(data->edges[2], TRUE, data->additive);
+                RTexture_select(data->edges[2], smooth, data->additive);
                 tVerts[0].co = verts[5].co;
                 tVerts[1].co = verts[9].co;
                 tVerts[2].co = verts[8].co;
@@ -175,7 +175,7 @@ static void RSprite_draw_window(RSprite *sprite, bool smooth)
                 glDrawArrays(GL_QUADS, 0, 4);
 
                 /* Middle quad */
-                RTexture_select(data->tiled, TRUE, data->additive);
+                RTexture_select(data->tiled, smooth, data->additive);
                 tVerts[0].co = verts[3].co;
                 tVerts[1].co = verts[10].co;
                 tVerts[2].co = verts[9].co;
@@ -200,7 +200,7 @@ static void RSprite_draw_quad(RSprite *sprite, bool smooth)
         const RSpriteData *data = sprite->data;
         RVertex verts[4];
         RTexture *texture;
-        CVec surfaceSize;
+        CVec surfaceSize, origin;
         const unsigned short indices[] = { 0, 1, 2, 3, 0 };
 
         /* Select a texture */
@@ -228,13 +228,12 @@ static void RSprite_draw_quad(RSprite *sprite, bool smooth)
 
         /* Setup vertex UV coordinates */
         if (data->tile == RST_TILE_GLOBAL) {
-                verts[0].uv = CVec_div(sprite->origin, surfaceSize);
-                verts[2].uv = CVec_div(CVec_add(sprite->origin, sprite->size),
+                origin = CVec_add(sprite->origin, data->tileOrigin);
+                verts[0].uv = CVec_div(origin, surfaceSize);
+                verts[2].uv = CVec_div(CVec_add(origin, sprite->size),
                                        surfaceSize);
         } else if (data->tile == RST_TILE_PARALLAX) {
-                CVec origin;
-
-                origin = CVec_sub(sprite->origin,
+                origin = CVec_sub(CVec_add(sprite->origin, data->tileOrigin),
                                   CVec_scalef(r_camera, data->parallax));
                 verts[0].uv = CVec_div(origin, surfaceSize);
                 verts[2].uv = CVec_div(CVec_add(origin, sprite->size),

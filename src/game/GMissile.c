@@ -44,7 +44,7 @@ static int GMissile_eventFunc(GMissile *mis, int event, void *args)
         switch (event) {
         case PE_IMPACT:
                 C_assert(!mis->parent ||
-                         ((PEventImpact *)args)->other != mis->parent);
+                         ((PImpactEvent *)args)->other != mis->parent);
                 PEntity_kill(&mis->entity);
                 origin = CVec_add(mis->entity.origin,
                                   CVec_divf(mis->entity.size, 2));
@@ -176,7 +176,7 @@ GMissile *G_fireMissile(PEntity *parent, const char *className,
                         parent->ignore = TRUE;
                 at = CVec_add(from, CVec_scalef(dir, misClass->lead));
                 trace = PEntity_trace(&mis->entity, at);
-                mis->entity.origin = trace.position;
+                mis->entity.origin = trace.end;
                 if (parent)
                         parent->ignore = FALSE;
         }

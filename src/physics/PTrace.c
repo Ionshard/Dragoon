@@ -29,7 +29,7 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType)
 
         /* Can't impact anything or didn't go anywhere */
         if (impactType == PIT_NONE || CVec_eq(from, to)) {
-                trace.position = to;
+                trace.end = to;
                 trace.prop = 1.f;
                 return trace;
         }
@@ -86,8 +86,8 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType)
 
                 /* Started within this entity */
                 if (CVec_intersect(from, size, other->origin, other->size)) {
-                        trace.position = from;
-                        trace.impactEntity = other;
+                        trace.end = from;
+                        trace.other = other;
                         trace.startSolid = TRUE;
                         trace.prop = 0.f;
                         trace.dir = CVec(0.f, 0.f);
@@ -193,7 +193,7 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType)
                 to = CVec_lerp(from, dist, to);
 
                 /* We have a hit */
-                trace.impactEntity = other;
+                trace.other = other;
 
                 /* Done tracing */
                 if (trace.prop <= 0)
@@ -201,7 +201,7 @@ PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType)
         }
 
         /* Return values */
-        trace.position = to;
+        trace.end = to;
         return trace;
 }
 

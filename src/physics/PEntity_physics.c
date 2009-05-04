@@ -25,11 +25,41 @@
 #define BOUNCE_V_MIN 40
 
 /******************************************************************************\
+ Compute impact event origin.
+\******************************************************************************/
+static void PImpactEvent_computeOrigin(PImpactEvent *event, PEntity *entity)
+{
+        float min, max;
+
+        if (fabsf(event->dir.x) >= fabsf(event->dir.y)) {
+                event->origin.x = event->dir.x < 0 ? entity->origin.x :
+                                  entity->origin.x + entity->size.x;
+                min = entity->origin.y;
+                if (event->other->origin.y > min)
+                        min = event->other->origin.y;
+                max = entity->origin.y + entity->size.y;
+                if (event->other->origin.y + event->other->size.y < max)
+                        max = event->other->origin.y + event->other->size.y;
+                event->origin.y = (max + min) / 2;
+        } else {
+                min = entity->origin.x;
+                if (event->other->origin.x > min)
+                        min = event->other->origin.x;
+                max = entity->origin.x + entity->size.x;
+                if (event->other->origin.x + event->other->size.x < max)
+                        max = event->other->origin.x + event->other->size.x;
+                event->origin.x = (max + min) / 2;
+                event->origin.y = event->dir.y < 0 ? entity->origin.y :
+                                  entity->origin.y + entity->size.y;
+        }
+}
+
+/******************************************************************************\
  Entity elastic collision with a mobile entity.
 \******************************************************************************/
 static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
 {
-        PEventImpact impactEvent;
+        PImpactEvent impactEvent;
         float velA, velB, velANew, velBNew;
 
         C_assert(entity->mass > 0.f);
@@ -43,12 +73,18 @@ static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
         impactEvent.other = other;
         impactEvent.dir = dir;
         impactEvent.impulse = velA * entity->mass + velB * other->mass;
+        PImpactEvent_computeOrigin(&impactEvent, entity);
         if (PEntity_event(entity, PE_IMPACT, &impactEvent))
                 return;
         impactEvent.other = entity;
         impactEvent.dir = CVec_scalef(dir, -1.f);
+        PImpactEvent_computeOrigin(&impactEvent, other);
         if (PEntity_event(other, PE_IMPACT, &impactEvent))
                 return;
+
+        /* Recompute velocities in case one entity changed another's velocity */
+        velA = CVec_dot(entity->velocity, dir);
+        velB = CVec_dot(other->velocity, dir);
 
         /* Compute new velocities */
         velANew = (velA * (entity->mass - other->mass) +
@@ -77,7 +113,7 @@ static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
 \******************************************************************************/
 static void PEntity_bounceFixture(PEntity *entity, PEntity *other, CVec dir)
 {
-        PEventImpact impactEvent;
+        PImpactEvent impactEvent;
         float vel, velNew;
 
         /* Check if either entity does not want the impact */
@@ -85,15 +121,17 @@ static void PEntity_bounceFixture(PEntity *entity, PEntity *other, CVec dir)
         impactEvent.other = other;
         impactEvent.dir = dir;
         impactEvent.impulse = entity->mass * vel;
+        PImpactEvent_computeOrigin(&impactEvent, entity);
         if (PEntity_event(entity, PE_IMPACT, &impactEvent))
                 return;
         impactEvent.other = entity;
         impactEvent.dir = CVec_scalef(dir, -1.f);
+        PImpactEvent_computeOrigin(&impactEvent, other);
         if (PEntity_event(other, PE_IMPACT, &impactEvent))
                 return;
 
         /* New velocity */
-        velNew = -vel * entity->elasticity;
+        velNew = -(vel = CVec_dot(entity->velocity, dir)) * entity->elasticity;
 
         /* If the entity is bouncing off with very low speed, just stop */
         if (fabsf(velNew) < BOUNCE_V_MIN)
@@ -269,7 +307,7 @@ void PEntity_physics(PEntity *entity, float delT)
             !CVec_eq(entity->groundOrigin, entity->ground->origin)) {
                 delS = CVec_sub(entity->ground->origin, entity->groundOrigin);
                 trace = PEntity_trace(entity, CVec_add(entity->origin, delS));
-                entity->origin = trace.position;
+                entity->origin = trace.end;
         }
 
         /* Clip acceleration to make sure we move this frame */
@@ -282,7 +320,8 @@ void PEntity_physics(PEntity *entity, float delT)
 
         /* On ground, apply friction */
         if (entity->ground) {
-                if ((prop = 1 - entity->friction * delT) < 0)
+                if ((prop = 1 - entity->ground->friction *
+                                entity->friction * delT) < 0)
                         prop = 0;
                 entity->velocity.x *= prop;
         }
@@ -310,25 +349,26 @@ void PEntity_physics(PEntity *entity, float delT)
         from = entity->origin;
         to = CVec_add(from, delS);
         trace = PEntity_trace(entity, to);
-        entity->origin = trace.position;
+        entity->origin = trace.end;
 
         /* Entity started out stuck in something */
         if (trace.startSolid) {
-                PEventImpact impactEvent;
+                PImpactEvent impactEvent;
 
                 /* Generate an impact event */
-                impactEvent.other = trace.impactEntity;
-                impactEvent.dir = CVec_sub(entity->origin,
-                                           trace.impactEntity->origin);
+                impactEvent.other = trace.other;
+                impactEvent.dir = CVec_sub(entity->origin, trace.other->origin);
                 impactEvent.dir = CVec_norm(impactEvent.dir);
                 impactEvent.impulse = 0;
+                PImpactEvent_computeOrigin(&impactEvent, entity);
                 PEntity_event(entity, PE_IMPACT, &impactEvent);
                 impactEvent.other = entity;
                 impactEvent.dir = CVec_scalef(impactEvent.dir, -1.f);
-                PEntity_event(trace.impactEntity, PE_IMPACT, &impactEvent);
+                PImpactEvent_computeOrigin(&impactEvent, trace.other);
+                PEntity_event(trace.other, PE_IMPACT, &impactEvent);
 
                 /* Unstick the entity and skip it */
-                PEntity_unstick(entity, trace.impactEntity);
+                PEntity_unstick(entity, trace.other);
                 entity->lagSec = delT;
                 entity->velocity = lastV;
                 return;
@@ -384,13 +424,13 @@ void PEntity_physics(PEntity *entity, float delT)
         entity->velocity = CVec_add(lastV, CVec_scalef(entity->accel, delT));
 
         /* Try to avoid impact by stepping over this entity */
-        if (PEntity_stepOver(entity, trace.impactEntity))
+        if (PEntity_stepOver(entity, trace.other))
                 return;
 
         /* Handle impact physics */
-        if (trace.impactEntity->mass)
-                PEntity_bounceMobile(entity, trace.impactEntity, trace.dir);
+        if (trace.other->mass)
+                PEntity_bounceMobile(entity, trace.other, trace.dir);
         else
-                PEntity_bounceFixture(entity, trace.impactEntity, trace.dir);
+                PEntity_bounceFixture(entity, trace.other, trace.dir);
 }
 

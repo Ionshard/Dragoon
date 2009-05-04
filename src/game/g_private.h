@@ -29,11 +29,18 @@
 /* Input events, extends physics events */
 typedef enum {
         GE_UPDATE = PE_UPDATE,
+
+        /* Control events */
         GE_KEY_DOWN = P_EVENTS,
         GE_KEY_UP,
         GE_MOUSE_MOVE,
         GE_MOUSE_DOWN,
         GE_MOUSE_UP,
+
+        /* The argument is an entity that just jumped away using the entity
+           that receives this event, return non-zero to cancel the jump */
+        GE_JUMPED_AWAY,
+
         G_EVENTS
 } GEvent;
 

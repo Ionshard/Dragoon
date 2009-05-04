@@ -44,7 +44,8 @@ void G_loadMap(const char *filename, CVec offset)
                 if (!(className = C_readString(file, NULL))[0])
                         break;
                 C_fread(file, &params, sizeof (params));
-                entity = G_spawn(className);
+                if (!(entity = G_spawn(className)))
+                        continue;
                 entity->origin = CVec_add(params.origin, offset);
                 entity->size = params.size;
         }

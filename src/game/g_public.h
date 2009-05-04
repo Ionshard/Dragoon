@@ -17,7 +17,7 @@ extern char g_edit[C_NAME_MAX];
 
 /* GEntity.c */
 void G_cleanupEntities(void);
-void G_parseEntityCfg(const char *filename);
+void G_parseConfig(const char *filename);
 
 /* g_input.c */
 void G_dispatch(const SDL_Event *);

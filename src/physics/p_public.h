@@ -63,14 +63,14 @@ typedef struct PEntity {
 /* Impact event */
 typedef struct {
         PEntity *other;
-        CVec dir;
+        CVec dir, origin;
         float impulse;
-} PEventImpact;
+} PImpactEvent;
 
 /* Trace return structure */
 typedef struct {
-        PEntity *impactEntity;
-        CVec position, dir;
+        PEntity *other;
+        CVec end, dir;
         float prop;
         bool startSolid;
 } PTrace;

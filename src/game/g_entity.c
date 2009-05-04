@@ -37,6 +37,7 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
                 if (C_openBrace(file)) {
                         R_parseSpriteSection(file, entity->named.name);
                         C_strncpy_buf(entity->spriteName, entity->named.name);
+                        C_closeBrace(file);
                 }
 
                 /* Sprite name */
@@ -85,7 +86,7 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
 /******************************************************************************\
  Load entity definitions.
 \******************************************************************************/
-void G_parseEntityCfg(const char *filename)
+void G_parseConfig(const char *filename)
 {
         FILE *file;
 
@@ -106,8 +107,14 @@ void G_parseEntityCfg(const char *filename)
 
                 /* Parse class properties */
                 if (!C_openBrace(file)) {
-                        C_warning("Class definition '%s' has no body",
-                                  className);
+
+                        /* Include another config */
+                        if (!strcasecmp(baseName, "include"))
+                                G_parseConfig(className);
+
+                        else
+                                C_warning("Class definition '%s' has no body",
+                                          className);
                         continue;
                 }
                 if (!strcasecmp(baseName, "box"))
@@ -118,6 +125,8 @@ void G_parseEntityCfg(const char *filename)
                         GGroup_parseClass(file, className);
                 else if (!strcasecmp(baseName, "missile"))
                         GMissile_parseClass(file, className);
+                else if (!strcasecmp(baseName, "sprite"))
+                        R_parseSpriteSection(file, className);
                 else
                         C_warning("Unknown entity base '%s'", baseName);
                 C_closeBrace(file);

@@ -27,7 +27,7 @@
 #define CURSOR_DIST 18
 
 static GEntityClass playerClass;
-static PEntity playerEntity;
+static PEntity player;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
 static CVec aim, muzzle;
 static int fireDelay, jumpDelay;
@@ -75,19 +75,19 @@ static int playerEvent(PEntity *entity, int event, void *args)
         case PE_UPDATE:
 
                 /* Weapon muzzle */
-                muzzle = CVec_add(playerEntity.origin,
-                                  CVec_divf(playerEntity.size, 2));
+                muzzle = CVec_add(player.origin,
+                                  CVec_divf(player.size, 2));
                 muzzle.y += G_MUZZLE_OFFSET;
                 aim = CVec_add(r_cameraTo, constrainedMouse());
 
                 /* Position body parts */
-                mirror = aim.x > playerEntity.origin.x +
-                                 playerEntity.size.x / 2.f;
-                RSprite_center(&playerBody, playerEntity.origin,
-                               playerEntity.size);
+                mirror = aim.x > player.origin.x +
+                                 player.size.x / 2.f;
+                RSprite_center(&playerBody, player.origin,
+                               player.size);
                 RSprite_center(&playerWeapon, muzzle, CVec(0, 0));
-                RSprite_center(&playerHead, playerEntity.origin,
-                               playerEntity.size);
+                RSprite_center(&playerHead, player.origin,
+                               player.size);
 
                 /* Position the head and weapon */
                 RSprite_lookAt(&playerHead, aim);
@@ -99,11 +99,11 @@ static int playerEvent(PEntity *entity, int event, void *args)
                         playerHead.angle += M_PI;
                         playerWeapon.angle += M_PI;
                 }
-                RSprite_center(&playerBody, playerEntity.origin,
-                               playerEntity.size);
+                RSprite_center(&playerBody, player.origin,
+                               player.size);
                 RSprite_center(&playerWeapon, muzzle, CVec(0, 0));
-                RSprite_center(&playerHead, playerEntity.origin,
-                               playerEntity.size);
+                RSprite_center(&playerHead, player.origin,
+                               player.size);
 
                 RSprite_draw(&playerBody);
                 RSprite_draw(&playerHead);
@@ -135,17 +135,23 @@ static void checkJump(void)
                 return;
 
         /* Jump off of a surface */
-        if (playerEntity.ground) {
-                if (playerEntity.velocity.y > -JUMP_V)
-                        playerEntity.velocity.y = -JUMP_V;
-        } else if (playerEntity.rightWall) {
-                if (playerEntity.velocity.x > -WALLJUMP_VX)
-                        playerEntity.velocity.x = -WALLJUMP_VX;
-                playerEntity.velocity.y -= WALLJUMP_VY;
-        } else if (playerEntity.leftWall) {
-                if (playerEntity.velocity.x < WALLJUMP_VX)
-                        playerEntity.velocity.x = WALLJUMP_VX;
-                playerEntity.velocity.y -= WALLJUMP_VY;
+        if (player.ground) {
+                if (PEntity_event(player.ground, GE_JUMPED_AWAY, &player))
+                        return;
+                if (player.velocity.y > -JUMP_V)
+                        player.velocity.y = -JUMP_V;
+        } else if (player.rightWall) {
+                if (PEntity_event(player.rightWall, GE_JUMPED_AWAY, &player))
+                        return;
+                if (player.velocity.x > -WALLJUMP_VX)
+                        player.velocity.x = -WALLJUMP_VX;
+                player.velocity.y -= WALLJUMP_VY;
+        } else if (player.leftWall) {
+                if (PEntity_event(player.leftWall, GE_JUMPED_AWAY, &player))
+                        return;
+                if (player.velocity.x < WALLJUMP_VX)
+                        player.velocity.x = WALLJUMP_VX;
+                player.velocity.y -= WALLJUMP_VY;
         } else
                 return;
 
@@ -162,7 +168,7 @@ void G_updatePlayer(void)
 {
         float accelX;
 
-        if (!CLink_linked(&playerEntity.linkAll))
+        if (!CLink_linked(&player.linkAll))
                 return;
         checkJump();
 
@@ -178,16 +184,16 @@ void G_updatePlayer(void)
                 accelX -= GROUND_A;
 
         /* On the ground */
-        if (playerEntity.ground) {
-                playerEntity.accel.x += accelX;
+        if (player.ground) {
+                player.accel.x += accelX;
                 RSprite_play(&playerBody,
                              g_control.x ? "playerBodyRun" : "playerBody");
         }
 
         /* In the air */
         else {
-                playerEntity.accel.x += accelX * AIR_MOVE;
-                RSprite_play(&playerBody, playerEntity.velocity.y < 0 ?
+                player.accel.x += accelX * AIR_MOVE;
+                RSprite_play(&playerBody, player.velocity.y < 0 ?
                                           "playerBodyUp" : "playerBodyDown");
         }
 
@@ -195,8 +201,7 @@ void G_updatePlayer(void)
         playerHead.z = playerBody.z = playerWeapon.z = playerClass.z;
 
         /* Update camera */
-        r_cameraTo = CVec_add(playerEntity.origin,
-                              CVec_divf(playerEntity.size, 2));
+        r_cameraTo = CVec_add(player.origin, CVec_divf(player.size, 2));
         r_cameraTo.x -= r_widthScaled / 2;
         r_cameraTo.y -= r_heightScaled / 2;
 }
@@ -206,7 +211,7 @@ void G_updatePlayer(void)
 \******************************************************************************/
 bool G_dispatch_player(GEvent event)
 {
-        if (!CLink_linked(&playerEntity.linkAll))
+        if (!CLink_linked(&player.linkAll))
                 return FALSE;
 
         /* Swing sword */
@@ -221,7 +226,7 @@ bool G_dispatch_player(GEvent event)
         else if (event == GE_MOUSE_DOWN && g_button == SDL_BUTTON_RIGHT &&
                  fireDelay <= 0) {
                 RSprite_play(&playerWeapon, "repelCannon");
-                G_fireMissile(&playerEntity, "repelMissile", muzzle, aim);
+                G_fireMissile(&player, "repelMissile", muzzle, aim);
                 fireDelay += CANNON_DELAY;
         }
 
@@ -251,18 +256,18 @@ void G_spawnPlayer(CVec origin)
         cursor.z = G_Z_HUD;
 
         /* Spawn player */
-        playerEntity.entityClass = &playerClass;
-        playerEntity.origin = origin;
-        playerEntity.size = CVec(10, 16);
-        playerEntity.mass = 1;
-        playerEntity.friction = 5;
-        playerEntity.elasticity = 0.25;
-        playerEntity.eventFunc = (PEventFunc)playerEvent;
-        playerEntity.impactOther = PIT_ENTITY;
-        playerEntity.manualUpdate = FALSE;
-        playerEntity.stepSize = 8;
-        PEntity_spawn(&playerEntity, "Player");
-        PEntity_impact(&playerEntity, PIT_ENTITY);
-        G_depthSortEntity(&playerEntity);
+        player.entityClass = &playerClass;
+        player.origin = origin;
+        player.size = CVec(10, 16);
+        player.mass = 1;
+        player.friction = 5;
+        player.elasticity = 0.25;
+        player.eventFunc = (PEventFunc)playerEvent;
+        player.impactOther = PIT_ENTITY;
+        player.manualUpdate = FALSE;
+        player.stepSize = 8;
+        PEntity_spawn(&player, "Player");
+        PEntity_impact(&player, PIT_ENTITY);
+        G_depthSortEntity(&player);
 }
 

@@ -49,7 +49,7 @@ typedef struct RSpriteData {
         RTexture *texture, *tiled, *edges[4];
         RSpriteTile tile;
         CColor modulate;
-        CVec boxOrigin, boxSize, center, scale, corner;
+        CVec boxOrigin, boxSize, tileOrigin, center, scale, corner;
         float parallax;
         int nextMsec;
         bool additive, flip, mirror, upscale;
