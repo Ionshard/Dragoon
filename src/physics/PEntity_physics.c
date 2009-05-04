@@ -21,6 +21,9 @@
 /* Positions outside of this limit are assumed to be broken entities */
 #define CO_LIMIT 100000
 
+/* If an entity bounces off with less velocity than this, just stop it */
+#define BOUNCE_V_MIN 40
+
 /******************************************************************************\
  Entity elastic collision with a mobile entity.
 \******************************************************************************/
@@ -56,6 +59,12 @@ static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
         velANew *= entity->elasticity;
         velBNew *= other->elasticity;
 
+        /* If the entity is bouncing off with very low speed, just stop */
+        if (fabsf(velANew) < BOUNCE_V_MIN)
+                velANew = 0;
+        if (fabsf(velBNew) < BOUNCE_V_MIN)
+                velBNew = 0;
+
         /* Apply bounce impulses */
         entity->velocity = CVec_add(entity->velocity,
                                     CVec_scalef(dir, velANew - velA));
@@ -86,6 +95,10 @@ static void PEntity_bounceFixture(PEntity *entity, PEntity *other, CVec dir)
         /* New velocity */
         velNew = -vel * entity->elasticity;
 
+        /* If the entity is bouncing off with very low speed, just stop */
+        if (fabsf(velNew) < BOUNCE_V_MIN)
+                velNew = 0;
+
         /* Apply bounce impulse */
         entity->velocity = CVec_add(entity->velocity,
                                     CVec_scalef(dir, velNew - vel));
@@ -96,19 +109,22 @@ static void PEntity_bounceFixture(PEntity *entity, PEntity *other, CVec dir)
 \******************************************************************************/
 static void PEntity_unstick(PEntity *entity, const PEntity *other)
 {
-        CVec entityCenter, otherCenter, diff;
+        CVec entityCenter, otherCenter, centerDiff;
+        float dist_h, dist_v;
 
         entityCenter = CVec_add(entity->origin, CVec_divf(entity->size, 2));
         otherCenter = CVec_add(other->origin, CVec_divf(other->size, 2));
-        diff = CVec_sub(otherCenter, entityCenter);
-        if (fabsf(diff.x) < fabsf(diff.y))
-                entity->origin.x = entityCenter.x > otherCenter.x ?
-                                   other->origin.x + other->size.x :
-                                   other->origin.x - entity->size.x;
+        centerDiff = CVec_sub(otherCenter, entityCenter);
+        dist_h = centerDiff.x >= 0 ?
+                 entity->origin.x + entity->size.x - other->origin.x :
+                 other->origin.x + other->size.x - entity->origin.x;
+        dist_v = centerDiff.y >= 0 ?
+                 entity->origin.y + entity->size.y - other->origin.y :
+                 other->origin.y + other->size.y - entity->origin.y;
+        if (dist_v < dist_h)
+                entity->origin.y += centerDiff.y >= 0 ? -dist_v : dist_v;
         else
-                entity->origin.y = entityCenter.y > otherCenter.y ?
-                                   other->origin.y + other->size.y :
-                                   other->origin.y - entity->size.y;
+                entity->origin.x += centerDiff.x >= 0 ? -dist_h : dist_h;
 }
 
 /******************************************************************************\
@@ -203,8 +219,10 @@ static void PEntity_clipAccel(PEntity *entity, float delT)
 
                         /* Clip down */
                         else if (entity->origin.y + entity->size.y ==
-                                 other->origin.y)
+                                 other->origin.y) {
                                 entity->ground = other;
+                                entity->groundOrigin = other->origin;
+                        }
                 }
         }
 
@@ -245,6 +263,14 @@ void PEntity_physics(PEntity *entity, float delT)
         /* Add gravity */
         if (!entity->fly)
                 entity->accel.y += p_gravity;
+
+        /* Move with ground entity */
+        if (entity->ground && !entity->ground->dead &&
+            !CVec_eq(entity->groundOrigin, entity->ground->origin)) {
+                delS = CVec_sub(entity->ground->origin, entity->groundOrigin);
+                trace = PEntity_trace(entity, CVec_add(entity->origin, delS));
+                entity->origin = trace.position;
+        }
 
         /* Clip acceleration to make sure we move this frame */
         PEntity_clipAccel(entity, delT);

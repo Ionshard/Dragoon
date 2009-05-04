@@ -256,7 +256,7 @@ void G_spawnPlayer(CVec origin)
         playerEntity.size = CVec(10, 16);
         playerEntity.mass = 1;
         playerEntity.friction = 5;
-        playerEntity.drag = 0;
+        playerEntity.elasticity = 0.25;
         playerEntity.eventFunc = (PEventFunc)playerEvent;
         playerEntity.impactOther = PIT_ENTITY;
         playerEntity.manualUpdate = FALSE;

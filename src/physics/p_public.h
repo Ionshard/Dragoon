@@ -53,7 +53,7 @@ typedef struct PEntity {
         PEventFunc eventFunc;
         PImpactType impactOther;
         CLink linkAll, linkWorld, linkEntity;
-        CVec origin, size, velocity, accel;
+        CVec origin, size, velocity, accel, groundOrigin;
         float mass, friction, drag, elasticity, lagSec, stepSize;
         int frameSkip;
         bool dead, manualUpdate, ignore, fly;

@@ -15,6 +15,7 @@
 /******************************************************************************\
  Trace a box through the world. Returns the proportion of the path
  that is traceable. Any of the output argument pointers may be NULL.
+ FIXME: May have a bug with corners.
 \******************************************************************************/
 PTrace PTrace_box(CVec from, CVec to, CVec size, PImpactType impactType)
 {
