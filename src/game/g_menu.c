@@ -68,7 +68,9 @@ void G_initMenu(void)
         entry = RMenuEntry_new("Continue", NULL);
         entry->enabled = FALSE;
         RMenu_add(&menuMain, entry, 0);
-        RMenu_add(&menuMain, RMenuEntry_new("Options", NULL), 0);
+        entry = RMenuEntry_new("Options", NULL);
+        entry->enabled = FALSE;
+        RMenu_add(&menuMain, entry, 0);
         RMenu_add(&menuMain, RMenuEntry_new("Quit", (CCallback)onQuit), 0);
 }
 

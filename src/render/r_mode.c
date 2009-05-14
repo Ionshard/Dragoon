@@ -62,12 +62,7 @@ bool R_setVideoMode(void)
         r_widthScaled = r_width * r_heightScaled / r_height;
 
         /* Create a new window */
-        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
         SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
-        SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-        SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-        SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-        SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 0);
         flags = SDL_OPENGL | SDL_DOUBLEBUF | SDL_ANYFORMAT;
         if (r_fullscreen)
                 flags |= SDL_FULLSCREEN;

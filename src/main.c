@@ -106,7 +106,7 @@ static bool keyEvent(const SDL_Event *ev)
 
         /* In checked mode, Escape quits */
         if (CHECKED && ev->key.keysym.sym == SDLK_ESCAPE)
-                return 0;
+                return TRUE;
 
         /* Screenshot */
         if (ev->key.keysym.sym == SDLK_F12)
