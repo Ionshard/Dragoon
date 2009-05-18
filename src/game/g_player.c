@@ -14,7 +14,7 @@
 
 /* Player movement parameters */
 #define JUMP_V 150
-#define JUMP_DELAY 50
+#define JUMP_DELAY 100
 #define WALLJUMP_VX (JUMP_V / C_SQRT2)
 #define WALLJUMP_VY (JUMP_V / C_SQRT2)
 #define GROUND_A 800
@@ -185,7 +185,7 @@ void G_updatePlayer(void)
 
         /* On the ground */
         if (player.ground) {
-                player.accel.x += accelX;
+                player.accel.x += accelX * player.ground->friction;
                 RSprite_play(&playerBody,
                              g_control.x ? "playerBodyRun" : "playerBody");
         }
@@ -256,6 +256,7 @@ void G_spawnPlayer(CVec origin)
         cursor.z = G_Z_HUD;
 
         /* Spawn player */
+        C_zero(&player);
         player.entityClass = &playerClass;
         player.origin = origin;
         player.size = CVec(10, 16);
