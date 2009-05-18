@@ -156,6 +156,9 @@ int main(int argc, char *argv[])
         R_parseSpriteCfg("gfx/sprites.cfg");
         G_initMenu();
 
+        /* Hide cursor */
+        SDL_ShowCursor(SDL_DISABLE);
+
         /* Seed random number generator */
         srand(time(NULL));
 

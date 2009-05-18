@@ -71,9 +71,6 @@ bool R_setVideoMode(void)
                 return FALSE;
         }
 
-        /* Hide cursor */
-        SDL_ShowCursor(SDL_DISABLE);
-
         C_debug("Set mode %dx%d (%dx%d scaled), scale factor %d",
                 r_width, r_height, r_widthScaled, r_heightScaled, r_scale);
         R_checkErrors();

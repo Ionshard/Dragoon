@@ -185,7 +185,11 @@ void G_updatePlayer(void)
 
         /* On the ground */
         if (player.ground) {
-                player.accel.x += accelX * player.ground->friction;
+                float friction;
+
+                if ((friction = player.ground->friction) < 0)
+                        friction = 1 / -friction;
+                player.accel.x += accelX * friction;
                 RSprite_play(&playerBody,
                              g_control.x ? "playerBodyRun" : "playerBody");
         }
