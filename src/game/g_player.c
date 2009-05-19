@@ -15,6 +15,7 @@
 /* Player movement parameters */
 #define JUMP_V 150
 #define JUMP_DELAY 100
+#define JUMP_TRACE 4
 #define WALLJUMP_VX (JUMP_V / C_SQRT2)
 #define WALLJUMP_VY (JUMP_V / C_SQRT2)
 #define GROUND_A 800
@@ -120,6 +121,10 @@ static int playerEvent(PEntity *entity, int event, void *args)
 \******************************************************************************/
 static void checkJump(void)
 {
+        PTrace trace;
+        PEntity *other;
+        CVec to;
+
         /* Release jump */
         if (g_control.y >= 0)
                 jumpHeld = FALSE;
@@ -133,26 +138,61 @@ static void checkJump(void)
         /* Don't want to jump */
         if (jumpHeld || g_control.y >= 0)
                 return;
+        other = NULL;
 
-        /* Jump off of a surface */
-        if (player.ground) {
-                if (PEntity_event(player.ground, GE_JUMPED_AWAY, &player))
+        /* Jump off of ground */
+        other = player.ground;
+        if (!other) {
+                to = CVec_add(player.origin, CVec(0, JUMP_TRACE));
+                trace = PEntity_trace(&player, to);
+                other = trace.other;
+        }
+        if (other) {
+                if (PEntity_event(other, GE_JUMPED_AWAY, &player))
                         return;
-                if (player.velocity.y > -JUMP_V)
-                        player.velocity.y = -JUMP_V;
-        } else if (player.rightWall) {
-                if (PEntity_event(player.rightWall, GE_JUMPED_AWAY, &player))
-                        return;
-                if (player.velocity.x > -WALLJUMP_VX)
-                        player.velocity.x = -WALLJUMP_VX;
-                player.velocity.y -= WALLJUMP_VY;
-        } else if (player.leftWall) {
-                if (PEntity_event(player.leftWall, GE_JUMPED_AWAY, &player))
-                        return;
-                if (player.velocity.x < WALLJUMP_VX)
-                        player.velocity.x = WALLJUMP_VX;
-                player.velocity.y -= WALLJUMP_VY;
-        } else
+                if (player.velocity.y > 0)
+                        player.velocity.y = 0;
+                player.velocity.y = -JUMP_V;
+        }
+
+        /* Walljump off of right wall */
+        if (!other) {
+                other = player.rightWall;
+                if (!other) {
+                        to = CVec_add(player.origin, CVec(JUMP_TRACE, 0));
+                        trace = PEntity_trace(&player, to);
+                        other = trace.other;
+                }
+                if (other) {
+                        if (PEntity_event(other, GE_JUMPED_AWAY, &player))
+                                return;
+                        if (player.velocity.x > 0)
+                                player.velocity.x = 0;
+                        player.velocity.x -= WALLJUMP_VX;
+                        player.velocity.y -= WALLJUMP_VY;
+                }
+        }
+
+        /* Walljump off of left wall */
+        if (!other) {
+                other = player.leftWall;
+                if (!other) {
+                        to = CVec_add(player.origin, CVec(-JUMP_TRACE, 0));
+                        trace = PEntity_trace(&player, to);
+                        other = trace.other;
+                }
+                if (other) {
+                        if (PEntity_event(other, GE_JUMPED_AWAY, &player))
+                                return;
+                        if (player.velocity.x < 0)
+                                player.velocity.x = 0;
+                        player.velocity.x += WALLJUMP_VX;
+                        player.velocity.y -= WALLJUMP_VY;
+                }
+        }
+
+        /* Didn't jump */
+        if (!other)
                 return;
 
         /* Jumped somehow */
@@ -185,11 +225,10 @@ void G_updatePlayer(void)
 
         /* On the ground */
         if (player.ground) {
-                float friction;
-
-                if ((friction = player.ground->friction) < 0)
-                        friction = 1 / -friction;
-                player.accel.x += accelX * friction;
+                if (player.ground->friction >= 0 &&
+                    player.ground->friction < 1)
+                        accelX *= player.ground->friction;
+                player.accel.x += accelX;
                 RSprite_play(&playerBody,
                              g_control.x ? "playerBodyRun" : "playerBody");
         }
