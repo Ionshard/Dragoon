@@ -39,6 +39,7 @@ static void cleanup(void)
         G_cleanupEntities();
         R_cleanupSprites();
         R_cleanupTextures();
+        SDL_Quit();
         C_cleanupVars();
         C_checkLeaks();
 }
@@ -96,6 +97,33 @@ static void initSdl(void)
 }
 
 /******************************************************************************\
+ Handle global key events. Returns TRUE if the program should quit.
+\******************************************************************************/
+static bool keyEvent(const SDL_Event *ev)
+{
+        if (ev->type != SDL_KEYDOWN)
+                return FALSE;
+
+        /* In checked mode, Escape quits */
+        if (CHECKED && ev->key.keysym.sym == SDLK_ESCAPE)
+                return TRUE;
+
+        /* Screenshot */
+        if (ev->key.keysym.sym == SDLK_F12)
+                R_screenshot();
+
+        /* Fullscreen toggle */
+        if (ev->key.keysym.sym == SDLK_F11) {
+                C_debug("Toggled fullscreen");
+                r_fullscreen = !r_fullscreen;
+                R_setVideoMode();
+                R_initGl();
+        }
+
+        return FALSE;
+}
+
+/******************************************************************************\
  Program entry point.
 \******************************************************************************/
 int main(int argc, char *argv[])
@@ -128,6 +156,9 @@ int main(int argc, char *argv[])
         R_parseSpriteCfg("gfx/sprites.cfg");
         G_initMenu();
 
+        /* Hide cursor */
+        SDL_ShowCursor(SDL_DISABLE);
+
         /* Seed random number generator */
         srand(time(NULL));
 
@@ -151,18 +182,8 @@ int main(int argc, char *argv[])
 
                 /* Dispatch events */
                 while (SDL_PollEvent(&ev)) {
-
-                        /* In checked mode, escape quits */
-                        if (ev.type == SDL_QUIT ||
-                            (CHECKED && ev.type == SDL_KEYDOWN &&
-                             ev.key.keysym.sym == SDLK_ESCAPE))
+                        if (ev.type == SDL_QUIT || keyEvent(&ev))
                                 return 0;
-
-                        /* Screenshot key */
-                        if (ev.type == SDL_KEYDOWN &&
-                            ev.key.keysym.sym == SDLK_F12)
-                                R_screenshot();
-
                         G_dispatch(&ev);
                 }
 

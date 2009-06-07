@@ -43,7 +43,8 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                 break;
         case PE_IMPACT:
                 impactEvent = args;
-                if (!impactEvent->other->linkEntity.root)
+                if (!impactEvent->other->linkEntity.root &&
+                    impactEvent->other->impactOther != PIT_ENTITY)
                         break;
                 if ((entity = G_spawn(boxClass->impactEntity)))
                         entity->origin = impactEvent->origin;
