@@ -15,7 +15,8 @@
 /******************************************************************************\
  Initialize a text object.
 \******************************************************************************/
-void RText_init(RText *text, const char *font, const char *string)
+void RText_init_range(RText *text, const char *font, int start,
+                      int cols, int rows, const char *string)
 {
         int i;
 
@@ -24,6 +25,10 @@ void RText_init(RText *text, const char *font, const char *string)
         C_zero(text);
         C_strncpy_buf(text->string, string);
         text->modulate = CColor_white();
+        text->rows = rows;
+        text->cols = cols;
+        text->start = start;
+        text->scale = CVec(1, 1);
 
         /* Load font texture */
         if (!font || !font[0])
@@ -32,12 +37,22 @@ void RText_init(RText *text, const char *font, const char *string)
                 return;
 
         /* Setup sprites array */
-        text->boxSize = CVec(text->texture->surface->w / 16 - 1,
-                             text->texture->surface->h / 6 - 1);
-        for (i = 0; text->string[i]; i++) {
+        text->boxSize = RText_naturalSize(text);
+        for (i = 0; i < R_TEXT_MAX; i++) {
                 text->sprites[i].size = text->boxSize;
                 text->sprites[i].modulate = CColor_white();
         }
+}
+
+/******************************************************************************\
+ Returns natural size for a text character.
+\******************************************************************************/
+CVec RText_naturalSize(const RText *text)
+{
+        if (!text || !text->texture || !text->texture->surface)
+                return CVec(0, 0);
+        return CVec(text->texture->surface->w / text->cols - 1,
+                    text->texture->surface->h / text->rows - 1);
 }
 
 /******************************************************************************\
@@ -47,7 +62,7 @@ void RText_draw(RText *text)
 {
         RSpriteData spriteData;
         CVec halfSize, offsetSize;
-        int i, seed;
+        int i, seed, ch_max;
         float explodeNorm;
 
         if (!text->texture || !text->texture->surface)
@@ -58,6 +73,7 @@ void RText_draw(RText *text)
         spriteData.texture = text->texture;
         spriteData.modulate = text->modulate;
         spriteData.boxSize = text->boxSize;
+        spriteData.scale = text->scale;
         halfSize = CVec_divf(spriteData.boxSize, 2);
         offsetSize = CVec_addf(spriteData.boxSize, 1);
 
@@ -66,12 +82,14 @@ void RText_draw(RText *text)
         seed = C_randDet((int)(size_t)text);
         explodeNorm = text->explode.x || text->explode.y ?
                       sqrtf(CVec_len(text->explode)) : 0;
+        ch_max = text->rows * text->cols;
         for (i = 0; text->string[i]; i++) {
-                CVec origin, coords, diff;
+                CVec origin, coords, diff, size_old;
+                int ch;
 
                 glPushMatrix();
                 origin = text->origin;
-                origin.x += text->boxSize.x * i;
+                origin.x += text->boxSize.x * i * text->scale.x;
 
                 /* Letter jiggle effect */
                 if (text->jiggleRadius > 0) {
@@ -83,7 +101,8 @@ void RText_draw(RText *text)
                         origin = CVec_add(origin, diff);
                         text->sprites[i].angle = 0.1 * text->jiggleRadius *
                                                  sin(time + 911 * i);
-                }
+                } else
+                        text->sprites[i].angle = 0;
 
                 /* Letter explode effect */
                 if (explodeNorm) {
@@ -98,11 +117,19 @@ void RText_draw(RText *text)
                 }
 
                 glTranslatef(origin.x, origin.y, text->z);
-                coords = CVec(text->string[i] % 16, text->string[i] / 16 - 2);
+                if ((ch = text->string[i] - text->start) < 0 || ch >= ch_max) {
+                        glPopMatrix();
+                        continue;
+                }
+                coords = CVec(ch % text->cols, ch / text->cols);
                 spriteData.boxOrigin = CVec_scale(offsetSize, coords);
                 spriteData.center = halfSize;
                 text->sprites[i].data = &spriteData;
+                size_old = text->sprites[i].size;
+                text->sprites[i].size = CVec_scale(text->sprites[i].size,
+                                                   text->scale);
                 RSprite_draw(text->sprites + i);
+                text->sprites[i].size = size_old;
                 glPopMatrix();
         }
 }
@@ -112,6 +139,18 @@ void RText_draw(RText *text)
 \******************************************************************************/
 CVec RText_size(const RText *text)
 {
-        return CVec(strlen(text->string) * text->boxSize.x, text->boxSize.y);
+        return CVec_scale(CVec(strlen(text->string) * text->boxSize.x,
+                               text->boxSize.y), text->scale);
+}
+
+/******************************************************************************\
+ Center a text object on a point.
+\******************************************************************************/
+void RText_center(RText *text, CVec origin)
+{
+        CVec size;
+
+        size = RText_size(text);
+        text->origin = CVec(origin.x - size.x / 2, origin.y - size.y / 2);
 }
 

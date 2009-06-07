@@ -36,9 +36,10 @@ typedef struct {
         char string[R_TEXT_MAX];
         RSprite sprites[R_TEXT_MAX];
         struct RTexture *texture;
-        CVec boxSize, origin, explode;
+        CVec scale, boxSize, origin, explode;
         CColor modulate;
         float jiggleRadius, jiggleSpeed, z;
+        int rows, cols, start;
 } RText;
 
 /* Menu option object */
@@ -108,7 +109,11 @@ void R_parseSpriteSection(FILE *, const char *name);
 CVec R_spriteSize(const char *name);
 
 /* RText.c */
-void RText_init(RText *, const char *font, const char *string);
+#define RText_init(t, f, s) RText_init_range(t, f, 32, 16, 6, s)
+void RText_init_range(RText *, const char *font, int first,
+                      int cols, int rows, const char *);
+void RText_center(RText *, CVec origin);
 void RText_draw(RText *);
+CVec RText_naturalSize(const RText *);
 CVec RText_size(const RText *);
 

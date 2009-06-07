@@ -27,20 +27,77 @@
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
 
+/* Velocity display params */
+#define VEL_SCALE 0.001f
+#define VEL_JIGGLE_SCALE 0.000005f
+#define VEL_JIGGLE_SPEED 0.1f
+#define VEL_MIN 200.f
+#define VEL_YELLOW 350.f
+#define VEL_RED 500.f
+
 static GEntityClass playerClass;
 static PEntity player;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
+static RText hudVelocity;
 static CVec aim, muzzle;
 static int fireDelay, jumpDelay;
 static bool jumpHeld;
+
+/******************************************************************************\
+ Draw velocity meter.
+\******************************************************************************/
+static void drawVelocity(void)
+{
+        CColor color_a, color_b;
+        float lerp;
+        int vel, vel2;
+
+        vel = (int)CVec_len(player.velocity);
+        vel2 = vel * vel;
+        C_snprintf_buf(hudVelocity.string, "%d", vel);
+
+        /* Color */
+        if (vel <= VEL_MIN) {
+                color_a = CColor(1, 1, 1, 0);
+                color_b = CColor(1, 1, 1, 1);
+                lerp = vel / VEL_MIN;
+        } else if (vel <= VEL_YELLOW) {
+                color_a = CColor(1, 1, 1, 1);
+                color_b = CColor(1, 1, 0, 1);
+                lerp = (vel - VEL_MIN) / (VEL_YELLOW - VEL_MIN);
+        } else if (vel <= VEL_RED) {
+                color_a = CColor(1, 1, 0, 1);
+                color_b = CColor(1, 0, 0, 1);
+                lerp = (vel - VEL_YELLOW) / (VEL_RED - VEL_YELLOW);
+        } else {
+                color_a = CColor(1, 0, 0, 1);
+                color_b = CColor(1, 1, 1, 1);
+                lerp = C_rand();
+        }
+        hudVelocity.modulate = CColor_lerp(color_a, lerp, color_b);
+
+        /* Jiggle with speed */
+        hudVelocity.jiggleRadius = vel * vel * VEL_JIGGLE_SCALE;
+        hudVelocity.jiggleSpeed = VEL_JIGGLE_SPEED;
+
+        /* Scale with speed */
+        hudVelocity.scale = CVec(1 + vel * VEL_SCALE, 1 + vel * VEL_SCALE);
+
+        RText_center(&hudVelocity,
+                     CVec(r_widthScaled / 2, r_heightScaled - 10));
+        RText_draw(&hudVelocity);
+}
 
 /******************************************************************************\
  Draw the HUD.
 \******************************************************************************/
 void G_drawHud(void)
 {
-        RSprite_lookAt(&cursor, muzzle);
-        RSprite_center(&cursor, aim, CVec(0, 0));
+        drawVelocity();
+
+        /* Cursor */
+        RSprite_lookAt(&cursor, CVec_sub(muzzle, r_camera));
+        RSprite_center(&cursor, CVec_sub(aim, r_camera), CVec(0, 0));
         RSprite_draw(&cursor);
 }
 
@@ -291,12 +348,16 @@ void G_spawnPlayer(CVec origin)
         C_strncpy_buf(playerClass.named.name, "Player");
         playerClass.z = G_Z_CHAR;
 
-        /* Init sprites */
-        RSprite_init(&cursor, "cursor");
+        /* Init player sprites */
         RSprite_init(&playerHead, "playerHead");
         RSprite_init(&playerBody, "playerBody");
         RSprite_init(&playerWeapon, "repelCannon");
+
+        /* Init HUD sprites */
+        RSprite_init(&cursor, "cursor");
         cursor.z = G_Z_HUD;
+        RText_init_range(&hudVelocity, "gfx/digits.png", '0', 4, 3, "0");
+        hudVelocity.z = G_Z_HUD;
 
         /* Spawn player */
         C_zero(&player);

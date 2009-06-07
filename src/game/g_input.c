@@ -87,8 +87,8 @@ void G_update(void)
         /* Should only render entities now so offset the camera */
         R_beginCam();
         P_updateEntities();
-        G_drawHud();
         R_endCam();
+        G_drawHud();
 
         /* Propagate event */
         if (G_dispatch_editor(GE_UPDATE) || G_dispatch_menu(GE_UPDATE))
