@@ -274,7 +274,7 @@ void RSprite_draw(RSprite *sprite)
         CVec center;
         bool smooth, flip, mirror;
 
-        if (!sprite || !sprite->data || sprite->z > 0.f ||
+        if (!sprite || !sprite->data || sprite->z < 0.f ||
             sprite->modulate.a <= 0.f)
                 return;
 

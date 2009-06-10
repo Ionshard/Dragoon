@@ -88,7 +88,7 @@ void R_initGl(void)
         /* Orthogonal projection */
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.f, r_widthScaled, r_heightScaled, 0.f, 0.f, 1.f);
+        glOrtho(0.f, r_widthScaled, r_heightScaled, 0.f, 0.f, -1.f);
 
         /* Identity model matrix */
         glMatrixMode(GL_MODELVIEW);
@@ -101,9 +101,6 @@ void R_initGl(void)
         /* Minimal alpha testing */
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, 1 / 255.f);
-
-        /* Depth test function */
-        glDepthFunc(GL_LEQUAL);
 
         /* Background clear color */
         glClearColor(1.0f, 0.0f, 1.0f, 1.f);
@@ -119,6 +116,7 @@ void R_initGl(void)
 
         /* Sprites are depth-tested */
         glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
 
         R_checkErrors();
 }

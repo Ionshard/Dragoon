@@ -166,7 +166,7 @@ void G_depthSortEntity(PEntity *entity)
         while (CLink_prev(&entity->linkAll)) {
                 other = CLink_get(CLink_prev(&entity->linkAll));
                 otherClass = (GEntityClass *)other->entityClass;
-                if (otherClass && otherClass->z <= z)
+                if (otherClass && otherClass->z >= z)
                         break;
                 CLink_forward(&entity->linkAll);
         }

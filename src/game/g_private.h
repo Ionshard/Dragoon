@@ -17,11 +17,11 @@
 
 /* Z values for game layers */
 #define G_Z_HUD  0.00f
-#define G_Z_FORE -0.25f
-#define G_Z_CHAR -0.33f
-#define G_Z_MID  -0.50f
-#define G_Z_REAR -0.75f
-#define G_Z_BACK -1.00f
+#define G_Z_FORE 0.25f
+#define G_Z_CHAR 0.33f
+#define G_Z_MID  0.50f
+#define G_Z_REAR 0.75f
+#define G_Z_BACK 1.00f
 
 /* Player muzzle vertical offset from entity center */
 #define G_MUZZLE_OFFSET 2
