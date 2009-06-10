@@ -112,6 +112,7 @@ typedef enum {
 typedef struct CNamed {
         char name[C_NAME_MAX];
         CCallback cleanupFunc;
+        int size;
         struct CNamed *next;
 } CNamed;
 

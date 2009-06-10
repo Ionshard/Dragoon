@@ -95,6 +95,8 @@ PEntity *GGroup_spawn(GGroupClass *class)
         group->entity.eventFunc = (PEventFunc)GGroup_eventFunc;
         for (i = 0; i < class->children_len; i++) {
                 group->children[i] = G_spawn(class->children[i].name);
+                if (!group->children[i])
+                        continue;
                 group->children[i]->origin = class->children[i].origin;
                 group->children[i]->size = class->children[i].size;
 

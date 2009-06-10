@@ -76,6 +76,27 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
                         entity->z = atof(token);
         }
 
+        /* Clone an entity definition */
+        else if (!strcasecmp(token, "clone")) {
+                GEntityClass *base;
+
+                token = C_token(file);
+                if (!(base = CNamed_get(g_classRoot, token)))
+                        C_warning("Entity class '%s' is undefined", token);
+                else if (base->spawnFunc != entity->spawnFunc ||
+                         base->cleanupFunc != entity->cleanupFunc)
+                        C_warning("Entity class '%s' of different type", token);
+                else if (entity->named.size < base->named.size)
+                        C_warning("Entity class '%s' of larger size", token);
+                else {
+                        CNamed named;
+
+                        named = entity->named;
+                        memcpy(entity, base, base->named.size);
+                        entity->named = named;
+                }
+        }
+
         /* Unrecognized */
         else
                 return FALSE;

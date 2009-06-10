@@ -21,13 +21,14 @@
 #define GROUND_A 800
 #define AIR_MOVE 0.2
 
-/* Weapon delays */
+/* Cannon parameters */
 #define CANNON_DELAY 300
 
 /* Melee weapon parameters */
 #define SWORD_EXTEND 0.01
-#define SWORD_REACH 16
+#define SWORD_REACH 15
 #define SWORD_BOOST 50
+#define SWORD_FORCE_PER_V 1
 
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
@@ -37,8 +38,8 @@
 #define VEL_JIGGLE_SCALE 0.000005f
 #define VEL_JIGGLE_SPEED 0.1f
 #define VEL_MIN 200.f
-#define VEL_YELLOW 350.f
-#define VEL_RED 500.f
+#define VEL_WEAK 350.f
+#define VEL_STRONG 500.f
 
 static GEntityClass playerClass;
 static PEntity player;
@@ -67,14 +68,14 @@ static void drawVelocity(void)
                 color_a = CColor(1, 1, 1, 0);
                 color_b = CColor(1, 1, 1, 1);
                 lerp = vel / VEL_MIN;
-        } else if (vel <= VEL_YELLOW) {
+        } else if (vel <= VEL_WEAK) {
                 color_a = CColor(1, 1, 1, 1);
                 color_b = CColor(1, 1, 0, 1);
-                lerp = (vel - VEL_MIN) / (VEL_YELLOW - VEL_MIN);
-        } else if (vel <= VEL_RED) {
+                lerp = (vel - VEL_MIN) / (VEL_WEAK - VEL_MIN);
+        } else if (vel <= VEL_STRONG) {
                 color_a = CColor(1, 1, 0, 1);
                 color_b = CColor(1, 0, 0, 1);
-                lerp = (vel - VEL_YELLOW) / (VEL_RED - VEL_YELLOW);
+                lerp = (vel - VEL_WEAK) / (VEL_STRONG - VEL_WEAK);
         } else {
                 color_a = CColor(1, 0, 0, 1);
                 color_b = CColor(1, 1, 1, 1);
@@ -277,7 +278,8 @@ static void checkJump(void)
 static void checkWeapon(void)
 {
         PTrace trace;
-        CVec to;
+        CVec dir, to;
+        float force;
 
         /* Fire wait time */
         if ((fireDelay -= p_frameMsec) < 0)
@@ -288,17 +290,27 @@ static void checkWeapon(void)
                 return;
         if ((meleeProgress += p_frameMsec * SWORD_EXTEND) > 1)
                 meleeProgress = 1;
-        to = CVec_add(muzzle, CVec_scalef(CVec_norm(CVec_sub(aim, muzzle)),
-                                          meleeProgress * SWORD_REACH));
+        dir = CVec_norm(CVec_sub(aim, muzzle));
+        to = CVec_add(muzzle, CVec_scalef(dir, meleeProgress * SWORD_REACH));
         player.ignore = TRUE;
         trace = PTrace_line(muzzle, to, PIT_ENTITY);
         player.ignore = FALSE;
         if (trace.prop >= 1)
                 return;
 
-        /* Weaon impact */
+        /* Weapon impact */
+        force = CVec_dot(player.velocity, dir) * SWORD_FORCE_PER_V;
+        if (meleeProgress < 1)
+                force += SWORD_BOOST;
         stopMelee();
-        G_spawn_at("swordImpact", trace.end);
+        if (force < VEL_MIN)
+                G_spawn_at("swordImpact_min", trace.end);
+        else if (force <= VEL_WEAK)
+                G_spawn_at("swordImpact_weak", trace.end);
+        else if (force <= VEL_STRONG)
+                G_spawn_at("swordImpact_strong", trace.end);
+        else
+                G_spawn_at("swordImpact_max", trace.end);
 }
 
 /******************************************************************************\

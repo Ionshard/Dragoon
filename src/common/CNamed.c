@@ -48,8 +48,11 @@ void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
                                 cur = (named = cur)->next;
                                 CNamed_free(named);
                                 break;
-                        } else if (policy == CNP_RETURN)
+                        } else if (policy == CNP_RETURN) {
+                                if (cur->size < size)
+                                        C_error("Fetched object too small");
                                 return cur;
+                        }
                         C_error("Invalid policy %d", policy);
                 }
                 if (cmp > 0)
@@ -60,6 +63,7 @@ void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
 
         /* Allocate a new object */
         named = C_recalloc_full(func, NULL, size);
+        named->size = size;
         named->next = cur;
         named->cleanupFunc = cleanupFunc;
         if (last)
