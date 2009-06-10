@@ -20,7 +20,7 @@ float p_gravity = 500.f;
 
 /* Physics time elapsed this frame (may be less than real time) */
 float p_frameSec, p_speed = 1.f;
-int p_timeMsec, p_frameMsec;
+int p_timeMsec, p_frameMsec, p_frame;
 
 /* Entity counters */
 CCount p_countEntities;
@@ -64,6 +64,7 @@ void P_cleanupEntities(void)
         for (link = p_linkAll; link; link = CLink_next(link))
                 PEntity_kill(CLink_get(link));
         freeDead(TRUE);
+        p_frame = 0;
 }
 
 /******************************************************************************\
@@ -209,5 +210,7 @@ void P_updateEntities(void)
 
         /* Remove any entities that died this frame */
         freeDead(FALSE);
+
+        p_frame++;
 }
 

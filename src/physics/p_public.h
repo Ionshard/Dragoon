@@ -96,7 +96,7 @@ extern CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 extern CCount p_countEntities;
 extern CVec p_topLeft, p_bottomRight;
 extern float p_frameSec, p_gravity, p_speed;
-extern int p_timeMsec, p_frameMsec;
+extern int p_timeMsec, p_frameMsec, p_frame;
 
 /* PTrace.c */
 #define PTrace(a, b, c, d) PTrace_box(a, b, c, d)

@@ -316,17 +316,20 @@ void G_updatePlayer(void)
         aim = CVec_add(r_cameraTo, constrainedMouse());
 
         /* Kill the player if he falls off the map */
-        if (player.origin.x <= p_topLeft.x ||
-            player.origin.y <= p_topLeft.y ||
-            player.origin.x + player.size.x >= p_bottomRight.x ||
-            player.origin.y + player.size.y >= p_bottomRight.y) {
+        if (p_frame > 0 &&
+            (player.origin.x <= p_topLeft.x ||
+             player.origin.y <= p_topLeft.y ||
+             player.origin.x + player.size.x >= p_bottomRight.x ||
+             player.origin.y + player.size.y >= p_bottomRight.y)) {
                 C_warning("Player fell off the map");
                 PEntity_kill(&player);
         }
 
         /* If the player is dead, start a new game */
-        if (player.dead)
+        if (player.dead) {
+                C_debug("Player died");
                 G_newGame();
+        }
 }
 
 /******************************************************************************\
