@@ -317,6 +317,10 @@ void RSprite_draw(RSprite *sprite)
 
         /* Modulate color */
         modulate = CColor_scale(sprite->modulate, sprite->data->modulate);
+        if (sprite->data->additive) {
+                modulate = CColor_scalef(modulate, modulate.a);
+                modulate.a = 1;
+        }
         glColor4f(modulate.r, modulate.g, modulate.b, modulate.a);
 
         /* Render the sprite quad(s) */

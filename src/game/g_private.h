@@ -52,6 +52,7 @@ typedef PEntity *(*GSpawnFunc)(struct GEntityClass *);
 typedef struct GEntityClass {
         CNamed named;
         GSpawnFunc spawnFunc;
+        CCallback cleanupFunc;
         CVec size;
         float z;
         char editorKey, spriteName[C_NAME_MAX];
@@ -67,6 +68,7 @@ void G_depthSortEntity(PEntity *);
 void G_pushBackEntity(PEntity *);
 void G_pushForwardEntity(PEntity *);
 PEntity *G_spawn(const char *className);
+PEntity *G_spawn_at(const char *className, CVec origin);
 PImpactType G_token_impact(FILE *);
 
 extern CNamed *g_classRoot;

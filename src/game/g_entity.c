@@ -193,6 +193,15 @@ PEntity *G_spawn(const char *className)
         return entity;
 }
 
+PEntity *G_spawn_at(const char *className, CVec origin)
+{
+        PEntity *entity;
+
+        if ((entity = G_spawn(className)))
+                entity->origin = origin;
+        return entity;
+}
+
 /******************************************************************************\
  Push an entity forward in the linked list. Does not push it behind entities
  z-ordered in behind it.
@@ -236,7 +245,16 @@ void G_pushBackEntity(PEntity *entity)
 \******************************************************************************/
 void G_cleanupEntities(void)
 {
+        CNamed *named;
+        GEntityClass *gc;
+
         P_cleanupEntities();
+        for (named = g_classRoot; named; named = named->next) {
+                gc = (GEntityClass *)named;
+                if (!gc->cleanupFunc)
+                        continue;
+                gc->cleanupFunc(gc);
+        }
         CNamed_freeAll(&g_classRoot);
 }
 

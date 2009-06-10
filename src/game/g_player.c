@@ -24,6 +24,11 @@
 /* Weapon delays */
 #define CANNON_DELAY 300
 
+/* Melee weapon parameters */
+#define SWORD_EXTEND 0.01
+#define SWORD_REACH 16
+#define SWORD_BOOST 50
+
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
 
@@ -40,6 +45,7 @@ static PEntity player;
 static RSprite playerHead, playerBody, playerWeapon, cursor;
 static RText hudVelocity;
 static CVec aim, muzzle;
+static float meleeProgress;
 static int fireDelay, jumpDelay;
 static bool jumpHeld;
 
@@ -173,6 +179,15 @@ static int playerEvent(PEntity *entity, int event, void *args)
 }
 
 /******************************************************************************\
+ Put away the melee weapon.
+\******************************************************************************/
+static void stopMelee(void)
+{
+        meleeProgress = -1;
+        RSprite_play(&playerWeapon, "repelCannon");
+}
+
+/******************************************************************************\
  Checks if the player can jump and handles the acceleration.
 \******************************************************************************/
 static void checkJump(void)
@@ -257,6 +272,36 @@ static void checkJump(void)
 }
 
 /******************************************************************************\
+ Check weapon refire delay and melee impacts.
+\******************************************************************************/
+static void checkWeapon(void)
+{
+        PTrace trace;
+        CVec to;
+
+        /* Fire wait time */
+        if ((fireDelay -= p_frameMsec) < 0)
+                fireDelay = 0;
+
+        /* Check melee weapon */
+        if (meleeProgress < 0)
+                return;
+        if ((meleeProgress += p_frameMsec * SWORD_EXTEND) > 1)
+                meleeProgress = 1;
+        to = CVec_add(muzzle, CVec_scalef(CVec_norm(CVec_sub(aim, muzzle)),
+                                          meleeProgress * SWORD_REACH));
+        player.ignore = TRUE;
+        trace = PTrace_line(muzzle, to, PIT_ENTITY);
+        player.ignore = FALSE;
+        if (trace.prop >= 1)
+                return;
+
+        /* Weaon impact */
+        stopMelee();
+        G_spawn_at("swordImpact", trace.end);
+}
+
+/******************************************************************************\
  Player must be updated outside of normal entities once per frame because the
  player entity's motion affects the camera.
 \******************************************************************************/
@@ -269,10 +314,7 @@ void G_updatePlayer(void)
                 return;
 
         checkJump();
-
-        /* Fire wait time */
-        if ((fireDelay -= p_frameMsec) < 0)
-                fireDelay = 0;
+        checkWeapon();
 
         /* Horizontal movement */
         accelX = 0;
@@ -342,10 +384,11 @@ bool G_dispatch_player(GEvent event)
 
         /* Swing sword */
         if (g_button == SDL_BUTTON_LEFT) {
-                if (event == GE_MOUSE_DOWN)
+                if (event == GE_MOUSE_DOWN) {
                         RSprite_play(&playerWeapon, "sword");
-                if (event == GE_MOUSE_UP)
-                        RSprite_play(&playerWeapon, "repelCannon");
+                        meleeProgress = 0;
+                } if (event == GE_MOUSE_UP)
+                        stopMelee();
         }
 
         /* Fire cannon */
@@ -384,6 +427,9 @@ void G_spawnPlayer(CVec origin)
         cursor.z = G_Z_HUD;
         RText_init_range(&hudVelocity, "gfx/digits.png", '0', 4, 3, "0");
         hudVelocity.z = G_Z_HUD;
+
+        /* Initial weapon state */
+        meleeProgress = -1;
 
         /* Spawn player */
         C_zero(&player);
