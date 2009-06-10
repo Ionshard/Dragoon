@@ -17,6 +17,9 @@
    lagged frames and gdb debugging */
 #define P_FRAME_MSEC_MAX (1000 / 30)
 
+/* Positions outside of this limit are assumed to be broken entities */
+#define P_POSITION_LIMIT 100000
+
 /* PEntity_physics.c */
 void PEntity_physics(PEntity *entity, float delT);
 

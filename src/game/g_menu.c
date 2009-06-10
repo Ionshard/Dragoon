@@ -92,6 +92,9 @@ void G_hideMenu(void)
         if (menuShown)
                 menuShown->shown = FALSE;
         menuShown = NULL;
+
+        /* Unpause the game */
+        p_speed = 1;
 }
 
 /******************************************************************************\
@@ -103,6 +106,9 @@ void G_showMenu(void)
                 return;
         menuShown = &menuMain;
         menuMain.shown = TRUE;
+
+        /* Pause the game */
+        p_speed = 0;
 }
 
 /******************************************************************************\
@@ -153,7 +159,7 @@ bool G_dispatch_menu(GEvent event)
 
                 if (!C_fade(&menuBgFade, menuShown != NULL, R_MENU_FADE))
                         return FALSE;
-                R_drawRect(CVec(0, MENU_Y), -0.5f,
+                R_drawRect(CVec(0, MENU_Y), -0.1f,
                            CVec(r_widthScaled, MENU_HEIGHT),
                            CColor(0, 0, 0, 0), CColor(0.1f, 0.1f, 0.1f,
                                                       menuBgFade * 0.6f));

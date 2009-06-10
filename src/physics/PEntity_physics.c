@@ -18,9 +18,6 @@
 /* Velocity at which an entity is judged to be broken */
 #define V_LIMIT 10000
 
-/* Positions outside of this limit are assumed to be broken entities */
-#define CO_LIMIT 100000
-
 /* If an entity bounces off with less velocity than this, just stop it */
 #define BOUNCE_V_MIN 40
 
@@ -382,8 +379,10 @@ void PEntity_physics(PEntity *entity, float delT)
         }
 
         /* Bad entity flew out of bounds */
-        if (entity->origin.x < -CO_LIMIT || entity->origin.x > CO_LIMIT ||
-            entity->origin.y < -CO_LIMIT || entity->origin.y > CO_LIMIT) {
+        if (entity->origin.x < -P_POSITION_LIMIT ||
+            entity->origin.x > P_POSITION_LIMIT ||
+            entity->origin.y < -P_POSITION_LIMIT ||
+            entity->origin.y > P_POSITION_LIMIT) {
                 C_warning("Entity %s out of bounds", entity->name);
                 PEntity_kill(entity);
                 return;

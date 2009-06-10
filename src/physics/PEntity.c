@@ -26,6 +26,9 @@ int p_timeMsec, p_frameMsec;
 CCount p_countEntities;
 static int numEntities;
 
+/* Entity extremities, updated every frame */
+CVec p_topLeft, p_bottomRight;
+
 /******************************************************************************\
  Free memory used by dead entities.
 \******************************************************************************/
@@ -158,6 +161,11 @@ void PEntity_update(PEntity *entity)
         PEntity_physics(entity, p_frameSec);
         PEntity_event(entity, PE_PHYSICS_DONE, NULL);
 
+        /* Update extremities */
+        p_topLeft = CVec_min(p_topLeft, entity->origin);
+        p_bottomRight = CVec_max(p_bottomRight,
+                                 CVec_add(entity->origin, entity->size));
+
         /* Acceleration vector is reset every frame */
         entity->accel = CVec(0, 0);
 
@@ -177,6 +185,10 @@ void P_updateEntities(void)
 {
         PEntity *entity;
         CLink *link;
+
+        /* Reset extremities */
+        p_topLeft = CVec(P_POSITION_LIMIT, P_POSITION_LIMIT);
+        p_bottomRight = CVec(-P_POSITION_LIMIT, -P_POSITION_LIMIT);
 
         /* Update physics time */
         p_frameMsec = c_frameMsec * p_speed;

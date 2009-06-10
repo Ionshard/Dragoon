@@ -136,7 +136,6 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 muzzle = CVec_add(player.origin,
                                   CVec_divf(player.size, 2));
                 muzzle.y += G_MUZZLE_OFFSET;
-                aim = CVec_add(r_cameraTo, constrainedMouse());
 
                 /* Position body parts */
                 mirror = aim.x > player.origin.x +
@@ -265,8 +264,10 @@ void G_updatePlayer(void)
 {
         float accelX;
 
-        if (!CLink_linked(&player.linkAll))
+        /* Do nothing if paused or dead */
+        if (!CLink_linked(&player.linkAll) || player.dead || p_speed <= 0)
                 return;
+
         checkJump();
 
         /* Fire wait time */
@@ -304,6 +305,28 @@ void G_updatePlayer(void)
         r_cameraTo = CVec_add(player.origin, CVec_divf(player.size, 2));
         r_cameraTo.x -= r_widthScaled / 2;
         r_cameraTo.y -= r_heightScaled / 2;
+
+        /* Make sure camera is not looking outside the map area */
+        r_cameraTo = CVec_max(p_topLeft, r_cameraTo);
+        r_cameraTo = CVec_min(CVec_sub(p_bottomRight,
+                                       CVec(r_widthScaled, r_heightScaled)),
+                              r_cameraTo);
+
+        /* Update aim vector */
+        aim = CVec_add(r_cameraTo, constrainedMouse());
+
+        /* Kill the player if he falls off the map */
+        if (player.origin.x <= p_topLeft.x ||
+            player.origin.y <= p_topLeft.y ||
+            player.origin.x + player.size.x >= p_bottomRight.x ||
+            player.origin.y + player.size.y >= p_bottomRight.y) {
+                C_warning("Player fell off the map");
+                PEntity_kill(&player);
+        }
+
+        /* If the player is dead, start a new game */
+        if (player.dead)
+                G_newGame();
 }
 
 /******************************************************************************\
