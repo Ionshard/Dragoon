@@ -317,6 +317,9 @@ void RSprite_draw(RSprite *sprite)
 
         /* Modulate color */
         modulate = CColor_scale(sprite->modulate, sprite->data->modulate);
+        if (sprite->data->flicker > 0)
+                modulate.a = modulate.a * (1 - sprite->data->flicker) +
+                             sprite->data->flicker * C_rand();
         if (sprite->data->additive) {
                 modulate = CColor_scalef(modulate, modulate.a);
                 modulate.a = 1;

@@ -40,10 +40,12 @@
 #define VEL_MIN 200.f
 #define VEL_WEAK 350.f
 #define VEL_STRONG 500.f
+#define VEL_GLOW_MIN 500.f
+#define VEL_GLOW_MAX 1000.f
 
 static GEntityClass playerClass;
 static PEntity player;
-static RSprite playerHead, playerBody, playerWeapon, cursor;
+static RSprite playerHead, playerBody, playerWeapon, playerGlow, cursor;
 static RText hudVelocity;
 static CVec aim, muzzle;
 static float meleeProgress;
@@ -132,6 +134,7 @@ static CVec constrainedMouse(void)
 \******************************************************************************/
 static int playerEvent(PEntity *entity, int event, void *args)
 {
+        float vel;
         bool mirror;
 
         switch (event) {
@@ -169,9 +172,22 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 RSprite_center(&playerHead, player.origin,
                                player.size);
 
+                /* Draw player */
                 RSprite_draw(&playerBody);
                 RSprite_draw(&playerHead);
                 RSprite_draw(&playerWeapon);
+
+                /* Player glow effect */
+                vel = CVec_len(player.velocity);
+                if (vel < VEL_GLOW_MIN)
+                        break;
+                RSprite_center(&playerGlow, playerBody.origin, playerBody.size);
+                playerGlow.modulate.a = (vel - VEL_GLOW_MIN) /
+                                        (VEL_GLOW_MAX - VEL_GLOW_MIN);
+                if (playerGlow.modulate.a > 1)
+                        playerGlow.modulate.a = 1;
+                playerGlow.angle = CVec_angle(player.velocity);
+                RSprite_draw(&playerGlow);
                 break;
         default:
                 break;
@@ -353,7 +369,8 @@ void G_updatePlayer(void)
         }
 
         /* Make sure player sprite depth is correct */
-        playerHead.z = playerBody.z = playerWeapon.z = playerClass.z;
+        playerHead.z = playerBody.z = playerWeapon.z =
+                       playerGlow.z = playerClass.z;
 
         /* Update camera */
         r_cameraTo = CVec_add(player.origin, CVec_divf(player.size, 2));
@@ -432,6 +449,7 @@ void G_spawnPlayer(CVec origin)
         /* Init player sprites */
         RSprite_init(&playerHead, "playerHead");
         RSprite_init(&playerBody, "playerBody");
+        RSprite_init(&playerGlow, "playerGlow");
         RSprite_init(&playerWeapon, "repelCannon");
 
         /* Init HUD sprites */

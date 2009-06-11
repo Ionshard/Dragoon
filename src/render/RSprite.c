@@ -174,6 +174,10 @@ void R_parseSpriteSection(FILE *file, const char *name)
                         C_closeBrace(file);
                 }
 
+                /* Flicker alpha */
+                else if (!strcasecmp(token, "flicker"))
+                        data->flicker = C_token_float(file);
+
                 else
                         C_warning("Unknown sprite param '%s'", token);
 

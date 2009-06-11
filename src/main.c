@@ -153,8 +153,6 @@ int main(int argc, char *argv[])
         if (!R_setVideoMode())
                 return 1;
         R_initGl();
-        R_parseSpriteCfg("gfx/sprites.cfg");
-        G_initMenu();
 
         /* Hide cursor */
         SDL_ShowCursor(SDL_DISABLE);
@@ -164,6 +162,7 @@ int main(int argc, char *argv[])
 
         /* Start the game */
         G_parseConfig("game/main.cfg");
+        G_initMenu();
         if (g_edit[0])
                 G_initEditor();
         else if (g_play[0])

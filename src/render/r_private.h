@@ -50,7 +50,7 @@ typedef struct RSpriteData {
         RSpriteTile tile;
         CColor modulate;
         CVec boxOrigin, boxSize, tileOrigin, center, scale, corner;
-        float parallax;
+        float parallax, flicker;
         int nextMsec;
         bool additive, flip, mirror, upscale;
         char nextNames_len, nextNames[R_NEXT_NAMES][C_NAME_MAX];
