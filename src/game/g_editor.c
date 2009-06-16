@@ -72,7 +72,7 @@ static void pickEntity(void)
         for (nearest = 0, i = 1; i < len; i++) {
                 class_i = ents[i]->entityClass;
                 if (!class_i ||
-                    (class_nearest && class_i->z < class_nearest->z))
+                    (class_nearest && class_i->z > class_nearest->z))
                         continue;
                 class_nearest = class_i;
                 nearest = i;
