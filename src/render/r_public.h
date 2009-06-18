@@ -69,6 +69,8 @@ typedef struct {
 
 /* r_draw.c */
 void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod);
+void R_updateShake(CVec *offset, CVec *vel,
+                   float accel, float drag, float rand);
 
 /* RMenu.c */
 void RMenu_activate(RMenu *, bool next);
@@ -90,7 +92,7 @@ const char *R_screenshot(void);
 bool R_setVideoMode(void);
 
 extern CCount r_countFaces;
-extern CVec r_camera, r_cameraTo;
+extern CVec r_camera, r_cameraTo, r_cameraShake;
 extern int r_height, r_width, r_widthScaled, r_heightScaled, r_scale;
 extern bool r_clear, r_fullscreen;
 

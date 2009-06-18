@@ -82,9 +82,11 @@ int P_entsInBox(CVec origin, CVec size, PImpactType,
         P_entsInBox(o, s, t, b, sizeof (b) / sizeof (*(b)))
 
 /* PEntity.c */
+CVec PEntity_center(const PEntity *);
 void PEntity_cleanup(PEntity *);
 int PEntity_event(PEntity *, int event, void *args);
-void PEntity_impact(PEntity *, PImpactType);
+bool PEntity_impact(PEntity *entity, PEntity *other, CVec dir);
+void PEntity_impactType(PEntity *, PImpactType);
 void PEntity_kill(PEntity *);
 void PEntity_spawn(PEntity *, const char *className);
 PTrace PEntity_trace(PEntity *, CVec to);

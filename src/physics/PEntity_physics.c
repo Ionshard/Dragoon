@@ -52,31 +52,42 @@ static void PImpactEvent_computeOrigin(PImpactEvent *event, PEntity *entity)
 }
 
 /******************************************************************************\
- Entity elastic collision with a mobile entity.
+ Check if either entity does not want the impact. Triggers impact effects.
+ Returns FALSE if impact was avoided.
 \******************************************************************************/
-static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
+bool PEntity_impact(PEntity *entity, PEntity *other, CVec dir)
 {
         PImpactEvent impactEvent;
-        float velA, velB, velANew, velBNew;
+        float velA, velB;
 
-        C_assert(entity->mass > 0.f);
-        C_assert(other->mass > 0.f);
-
-        /* Velocity component in the impact direction */
         velA = CVec_dot(entity->velocity, dir);
         velB = CVec_dot(other->velocity, dir);
-
-        /* Check if either entity does not want the impact */
         impactEvent.other = other;
         impactEvent.dir = dir;
         impactEvent.impulse = velA * entity->mass + velB * other->mass;
         PImpactEvent_computeOrigin(&impactEvent, entity);
         if (PEntity_event(entity, PE_IMPACT, &impactEvent))
-                return;
+                return FALSE;
         impactEvent.other = entity;
         impactEvent.dir = CVec_scalef(dir, -1.f);
         PImpactEvent_computeOrigin(&impactEvent, other);
         if (PEntity_event(other, PE_IMPACT, &impactEvent))
+                return FALSE;
+        return TRUE;
+}
+
+/******************************************************************************\
+ Entity elastic collision with a mobile entity.
+\******************************************************************************/
+static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
+{
+        float velA, velB, velANew, velBNew;
+
+        C_assert(entity->mass > 0.f);
+        C_assert(other->mass > 0.f);
+
+        /* Check if either entity does not want the impact */
+        if (!PEntity_impact(entity, other, dir))
                 return;
 
         /* Recompute velocities in case one entity changed another's velocity */
@@ -110,21 +121,10 @@ static void PEntity_bounceMobile(PEntity *entity, PEntity *other, CVec dir)
 \******************************************************************************/
 static void PEntity_bounceFixture(PEntity *entity, PEntity *other, CVec dir)
 {
-        PImpactEvent impactEvent;
         float vel, velNew;
 
         /* Check if either entity does not want the impact */
-        vel = CVec_dot(entity->velocity, dir);
-        impactEvent.other = other;
-        impactEvent.dir = dir;
-        impactEvent.impulse = entity->mass * vel;
-        PImpactEvent_computeOrigin(&impactEvent, entity);
-        if (PEntity_event(entity, PE_IMPACT, &impactEvent))
-                return;
-        impactEvent.other = entity;
-        impactEvent.dir = CVec_scalef(dir, -1.f);
-        PImpactEvent_computeOrigin(&impactEvent, other);
-        if (PEntity_event(other, PE_IMPACT, &impactEvent))
+        if (!PEntity_impact(entity, other, dir))
                 return;
 
         /* New velocity */

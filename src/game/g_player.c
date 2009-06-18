@@ -15,11 +15,16 @@
 /* Player movement parameters */
 #define JUMP_V 150
 #define JUMP_DELAY 100
-#define JUMP_TRACE 4
+#define JUMP_TRACE 0
 #define WALLJUMP_VX (JUMP_V / C_SQRT2)
 #define WALLJUMP_VY (JUMP_V / C_SQRT2)
 #define GROUND_A 800
 #define AIR_MOVE 0.2
+
+/* Impact shake effect params */
+#define SHAKE_SCALE 0.03
+#define SHAKE_MASS 5
+#define SHAKE_MIN 5
 
 /* Cannon parameters */
 #define CANNON_DELAY 300
@@ -28,7 +33,7 @@
 #define SWORD_EXTEND 0.01
 #define SWORD_REACH 15
 #define SWORD_BOOST 50
-#define SWORD_FORCE_PER_V 1
+#define SWORD_FORCE_PER_V 5
 
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
@@ -134,7 +139,8 @@ static CVec constrainedMouse(void)
 \******************************************************************************/
 static int playerEvent(PEntity *entity, int event, void *args)
 {
-        float vel;
+        PImpactEvent *impactEvent;
+        float vel, force;
         bool mirror;
 
         switch (event) {
@@ -189,6 +195,21 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 playerGlow.angle = CVec_angle(player.velocity);
                 RSprite_draw(&playerGlow);
                 break;
+
+        /* Shake camera on impact */
+        case PE_IMPACT:
+                impactEvent = args;
+                force = SHAKE_SCALE * impactEvent->impulse /
+                        (SHAKE_MASS + player.mass);
+                if (force >= SHAKE_MIN) {
+                        CVec shake;
+
+                        force -= SHAKE_MIN;
+                        shake = CVec_scalef(impactEvent->dir, force);
+                        r_cameraShake = CVec_add(r_cameraShake, shake);
+                }
+                break;
+
         default:
                 break;
         }
@@ -230,7 +251,7 @@ static void checkJump(void)
 
         /* Jump off of ground */
         other = player.ground;
-        if (!other) {
+        if (!other && JUMP_TRACE) {
                 to = CVec_add(player.origin, CVec(0, JUMP_TRACE));
                 trace = PEntity_trace(&player, to);
                 other = trace.other;
@@ -246,7 +267,7 @@ static void checkJump(void)
         /* Walljump off of right wall */
         if (!other) {
                 other = player.rightWall;
-                if (!other) {
+                if (!other && JUMP_TRACE) {
                         to = CVec_add(player.origin, CVec(JUMP_TRACE, 0));
                         trace = PEntity_trace(&player, to);
                         other = trace.other;
@@ -264,7 +285,7 @@ static void checkJump(void)
         /* Walljump off of left wall */
         if (!other) {
                 other = player.leftWall;
-                if (!other) {
+                if (!other && JUMP_TRACE) {
                         to = CVec_add(player.origin, CVec(-JUMP_TRACE, 0));
                         trace = PEntity_trace(&player, to);
                         other = trace.other;
@@ -318,12 +339,17 @@ static void checkWeapon(void)
         force = CVec_dot(player.velocity, dir) * SWORD_FORCE_PER_V;
         if (meleeProgress < 1)
                 force += SWORD_BOOST;
-        stopMelee();
-        if (force < VEL_MIN)
+        if (force < 0)
+                force = 0;
+        player.mass = force;
+        if (PEntity_impact(&player, trace.other, dir))
+                stopMelee();
+        player.mass = 1;
+        if (force < VEL_MIN * SWORD_FORCE_PER_V)
                 G_spawn_at("swordImpact_min", trace.end);
-        else if (force <= VEL_WEAK)
+        else if (force <= VEL_WEAK * SWORD_FORCE_PER_V)
                 G_spawn_at("swordImpact_weak", trace.end);
-        else if (force <= VEL_STRONG)
+        else if (force <= VEL_STRONG * SWORD_FORCE_PER_V)
                 G_spawn_at("swordImpact_strong", trace.end);
         else
                 G_spawn_at("swordImpact_max", trace.end);
@@ -474,7 +500,7 @@ void G_spawnPlayer(CVec origin)
         player.manualUpdate = FALSE;
         player.stepSize = 8;
         PEntity_spawn(&player, "Player");
-        PEntity_impact(&player, PIT_ENTITY);
+        PEntity_impactType(&player, PIT_ENTITY);
         G_depthSortEntity(&player);
 }
 

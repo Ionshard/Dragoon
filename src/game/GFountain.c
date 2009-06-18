@@ -87,6 +87,10 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
         else if (event != PE_UPDATE)
                 return 0;
 
+        /* No particles to spawn */
+        if (fountain->particles <= 0)
+                return 0;
+
         /* Spawn new particles */
         while (c_timeMsec >= fountain->intervalNext) {
                 C_new(&particle);

@@ -31,6 +31,7 @@ typedef struct GMissile {
 static int GMissile_eventFunc(GMissile *mis, int event, void *args)
 {
         GMissileClass *class;
+        PEntity *other;
         CVec origin;
 
         class = mis->entity.entityClass;
@@ -42,15 +43,17 @@ static int GMissile_eventFunc(GMissile *mis, int event, void *args)
 
         switch (event) {
         case PE_IMPACT:
-                C_assert(!mis->parent ||
-                         ((PImpactEvent *)args)->other != mis->parent);
+                other = ((PImpactEvent *)args)->other;
+                C_assert(!mis->parent || other != mis->parent);
                 PEntity_kill(&mis->entity);
                 origin = CVec_add(mis->entity.origin,
                                   CVec_divf(mis->entity.size, 2));
                 P_pushRadius(origin, PIT_ENTITY,
                              class->pushForce, class->pushRadius);
                 G_spawn_at(class->impactEntity, origin);
-                return TRUE;
+                if (other->impactOther > PIT_NONE)
+                        return TRUE;
+                break;
         case PE_UPDATE:
                 RSprite_center(&mis->sprite, mis->entity.origin,
                                mis->entity.size);

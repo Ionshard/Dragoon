@@ -12,19 +12,51 @@
 
 #include "g_private.h"
 
+/* Impact offset effect parameters */
+#define OFFSET_MAX 1
+#define OFFSET_VEL 5000
+#define OFFSET_DRAG 15
+
 /* Box class */
 typedef struct GBoxClass {
         GEntityClass entity;
         PImpactType impact, impactOther;
-        float mass, elasticity, friction, impactDrag;
-        char impactEntity[C_NAME_MAX];
+        float mass, elasticity, friction, impactDrag, gibForce, gibDensity;
+        char impactEntity[C_NAME_MAX], gibEntity[C_NAME_MAX];
 } GBoxClass;
 
 /* Box entity */
 typedef struct GBox {
         PEntity entity;
         RSprite sprite;
+        CVec offset, offsetVel;
 } GBox;
+
+/******************************************************************************\
+ Gib a box entity.
+\******************************************************************************/
+void GBox_gib(GBox *box)
+{
+        GBoxClass *boxClass = box->entity.entityClass;
+        CVec origin;
+        int i, gibs;
+
+        /* Single centered gib */
+        gibs = box->entity.size.x * box->entity.size.y * boxClass->gibDensity;
+        if (gibs < 2)
+                G_spawn_at(boxClass->gibEntity, PEntity_center(&box->entity));
+
+        /* Spread out lots of gibs */
+        else
+                for (i = 0; i < gibs; i++) {
+                        origin = CVec_add(box->entity.origin,
+                                          CVec_scale(box->entity.size,
+                                                     CVec(C_rand(), C_rand())));
+                        G_spawn_at(boxClass->gibEntity, origin);
+                }
+
+        PEntity_kill(&box->entity);
+}
 
 /******************************************************************************\
  Box event function.
@@ -33,28 +65,62 @@ int GBox_eventFunc(GBox *box, int event, void *args)
 {
         GBoxClass *boxClass = box->entity.entityClass;
         PImpactEvent *impactEvent;
-        PEntity *entity;
 
         switch (event) {
         case PE_UPDATE:
                 box->sprite.origin = box->entity.origin;
                 box->sprite.size = box->entity.size;
+
+                /* Impact reeling effect */
+                if (box->offset.x || box->offset.y) {
+                        R_updateShake(&box->offset, &box->offsetVel,
+                                      OFFSET_VEL, OFFSET_DRAG, 0);
+                        box->sprite.origin = CVec_add(box->sprite.origin,
+                                                      box->offset);
+                }
+
                 RSprite_draw(&box->sprite);
                 break;
+
         case PE_IMPACT:
+
+                /* Only bother impacting with entities */
                 impactEvent = args;
                 if (!impactEvent->other->linkEntity.root &&
                     impactEvent->other->impactOther != PIT_ENTITY)
                         break;
-                if ((entity = G_spawn(boxClass->impactEntity)))
-                        entity->origin = impactEvent->origin;
+
+                /* Did this impact kill the box? */
+                if (boxClass->gibForce > 0) {
+                        CVec offset;
+
+                        if (impactEvent->impulse >= boxClass->gibForce) {
+                                GBox_gib(box);
+                                return TRUE;
+                        }
+
+                        /* Not dead -- reel from the impact */
+                        offset = CVec_scalef(impactEvent->dir, -OFFSET_MAX *
+                                             impactEvent->impulse /
+                                             boxClass->gibForce);
+                        box->offset = CVec_add(box->offset, offset);
+                }
+
+                /* Impact effect entity */
+                G_spawn_at(boxClass->impactEntity, impactEvent->origin);
+
+                /* Drag effect for glue boxes */
                 if (boxClass->impactDrag > 0)
                         impactEvent->other->velocity =
                                 CVec_scalef(impactEvent->other->velocity,
                                             1 - boxClass->impactDrag);
+
                 break;
+
+        /* Can't jump away from glue boxes */
         case GE_JUMPED_AWAY:
                 return boxClass->impactDrag > 0;
+
         default:
                 break;
         }
@@ -77,7 +143,7 @@ GBox *GBox_spawn(GBoxClass *boxClass)
         box->entity.friction = boxClass->friction;
         box->entity.impactOther = boxClass->impactOther;
         PEntity_spawn(&box->entity, "Box");
-        PEntity_impact(&box->entity, boxClass->impact);
+        PEntity_impactType(&box->entity, boxClass->impact);
         return box;
 }
 
@@ -137,6 +203,18 @@ void GBox_parseClass(FILE *file, const char *className)
                 /* Friction */
                 else if (!strcasecmp(token, "friction"))
                         boxClass->friction = C_token_float(file);
+
+                /* Maximum impact force before dying */
+                else if (!strcasecmp(token, "gibForce"))
+                        boxClass->gibForce = C_token_float(file);
+
+                /* Entity to spawn when killed */
+                else if (!strcasecmp(token, "gibEntity"))
+                        C_strncpy_buf(boxClass->gibEntity, C_token(file));
+
+                /* How densely to spread out gibs */
+                else if (!strcasecmp(token, "gibDensity"))
+                        boxClass->gibDensity = C_token_float(file);
 
                 else
                         C_warning("Unknown box param '%s'", token);

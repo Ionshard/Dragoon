@@ -70,7 +70,7 @@ void P_cleanupEntities(void)
 /******************************************************************************\
  Change what entities will impact this entity.
 \******************************************************************************/
-void PEntity_impact(PEntity *entity, PImpactType type)
+void PEntity_impactType(PEntity *entity, PImpactType type)
 {
         if (type >= PIT_ENTITY)
                 CLink_add(&entity->linkEntity, &p_linkEntity, entity);
@@ -147,6 +147,14 @@ PTrace PEntity_trace(PEntity *entity, CVec to)
         trace = PTrace(entity->origin, to, entity->size, entity->impactOther);
         entity->ignore = FALSE;
         return trace;
+}
+
+/******************************************************************************\
+ Returns the entity's center point.
+\******************************************************************************/
+CVec PEntity_center(const PEntity *entity)
+{
+        return CVec_add(entity->origin, CVec_divf(entity->size, 2));
 }
 
 /******************************************************************************\

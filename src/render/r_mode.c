@@ -15,6 +15,11 @@
 /* Camera motion speed in pixels per second */
 #define CAMERA_SPEED 10
 
+/* Camera shake params */
+#define SHAKE_ACCEL 5000
+#define SHAKE_DRAG 10
+#define SHAKE_RAND 0
+
 /* Screen mode parameters */
 int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale;
 bool r_clear, r_fullscreen;
@@ -23,8 +28,9 @@ bool r_clear, r_fullscreen;
 CCount r_countFaces, r_countLines;
 
 /* World-space camera */
-CVec r_camera, r_cameraTo;
+CVec r_camera, r_cameraTo, r_cameraShake;
 bool r_cameraOn;
+static CVec cameraShakeVel;
 
 /* Screenshots */
 static char screenshot[256];
@@ -49,6 +55,7 @@ void R_checkErrors_full(const char *func)
 \******************************************************************************/
 bool R_setVideoMode(void)
 {
+        const SDL_Surface *video;
         int flags;
 
         /* Ensure a minimum render size or pre-rendering will crash */
@@ -56,23 +63,25 @@ bool R_setVideoMode(void)
                 r_width = R_WIDTH;
         if (r_height < R_HEIGHT)
                 r_height = R_HEIGHT;
-        r_scale = r_height / R_HEIGHT;
-        r_heightScaled = r_height / r_scale;
-        r_heightScaled += (r_height - r_scale * r_heightScaled) / r_scale;
-        r_widthScaled = r_width * r_heightScaled / r_height;
 
         /* Create a new window */
         SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
         flags = SDL_OPENGL | SDL_DOUBLEBUF | SDL_ANYFORMAT;
         if (r_fullscreen)
                 flags |= SDL_FULLSCREEN;
-        if (!SDL_SetVideoMode(r_width, r_height, 0, flags)) {
+        if (!(video = SDL_SetVideoMode(r_width, r_height, 0, flags))) {
                 C_warning("Failed to set video mode: %s", SDL_GetError());
                 return FALSE;
         }
 
+        /* Get the actual screen size */
+        r_scale = video->h / R_HEIGHT;
+        r_heightScaled = video->h / r_scale;
+        r_heightScaled += (video->h - r_scale * r_heightScaled) / r_scale;
+        r_widthScaled = video->w * r_heightScaled / video->h;
         C_debug("Set mode %dx%d (%dx%d scaled), scale factor %d",
-                r_width, r_height, r_widthScaled, r_heightScaled, r_scale);
+                video->w, video->h, r_widthScaled, r_heightScaled, r_scale);
+
         R_checkErrors();
         return TRUE;
 }
@@ -209,6 +218,11 @@ void R_beginCam(void)
         if ((prop = CAMERA_SPEED * c_frameSec) > 1)
                 prop = 1;
         r_camera = CVec_lerp(r_camera, prop, r_cameraTo);
+
+        /* Camera shakes */
+        R_updateShake(&r_cameraShake, &cameraShakeVel,
+                      SHAKE_ACCEL, SHAKE_DRAG, SHAKE_RAND);
+        r_camera = CVec_add(r_camera, r_cameraShake);
 
         C_assert(!r_cameraOn);
         glMatrixMode(GL_MODELVIEW);
