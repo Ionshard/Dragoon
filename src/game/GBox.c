@@ -15,7 +15,7 @@
 /* Impact offset effect parameters */
 #define OFFSET_MAX 1
 #define OFFSET_VEL 5000
-#define OFFSET_DRAG 15
+#define OFFSET_DRAG 5
 
 /* Box class */
 typedef struct GBoxClass {
@@ -74,7 +74,7 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                 /* Impact reeling effect */
                 if (box->offset.x || box->offset.y) {
                         R_updateShake(&box->offset, &box->offsetVel,
-                                      OFFSET_VEL, OFFSET_DRAG, 0);
+                                      OFFSET_VEL, OFFSET_DRAG, 0, p_frameSec);
                         box->sprite.origin = CVec_add(box->sprite.origin,
                                                       box->offset);
                 }
@@ -95,6 +95,14 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                         CVec offset;
 
                         if (impactEvent->impulse >= boxClass->gibForce) {
+                                CVec vel;
+                                float prop;
+
+                                vel = impactEvent->other->velocity;
+                                prop = 1 - boxClass->gibForce /
+                                           impactEvent->impulse;
+                                vel = CVec_scalef(vel, prop);
+                                impactEvent->other->velocity = vel;
                                 GBox_gib(box);
                                 return TRUE;
                         }

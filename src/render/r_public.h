@@ -70,7 +70,7 @@ typedef struct {
 /* r_draw.c */
 void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod);
 void R_updateShake(CVec *offset, CVec *vel,
-                   float accel, float drag, float rand);
+                   float accel, float drag, float rand, float sec);
 
 /* RMenu.c */
 void RMenu_activate(RMenu *, bool next);

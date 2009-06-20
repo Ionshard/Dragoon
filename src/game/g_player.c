@@ -22,18 +22,22 @@
 #define AIR_MOVE 0.2
 
 /* Impact shake effect params */
-#define SHAKE_SCALE 0.03
-#define SHAKE_MASS 5
-#define SHAKE_MIN 5
+#define SHAKE_SCALE 1
+#define SHAKE_MIN 350
+
+/* Impact render effect params */
+#define IMPACT_RATE 7
+#define IMPACT_RATE_V -0.01
 
 /* Cannon parameters */
 #define CANNON_DELAY 300
 
 /* Melee weapon parameters */
-#define SWORD_EXTEND 0.01
+#define SWORD_EXTEND 0.015
 #define SWORD_REACH 15
-#define SWORD_BOOST 50
-#define SWORD_FORCE_PER_V 5
+#define SWORD_FORCE_PER_V 3
+#define SWORD_BOOST (50 * SWORD_FORCE_PER_V)
+#define SWORD_FORCE_PLAYER 0.5
 
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
@@ -53,7 +57,7 @@ static PEntity player;
 static RSprite playerHead, playerBody, playerWeapon, playerGlow, cursor;
 static RText hudVelocity;
 static CVec aim, muzzle;
-static float meleeProgress;
+static float meleeProgress, impactProgress, impactVelocity;
 static int fireDelay, jumpDelay;
 static bool jumpHeld;
 
@@ -63,10 +67,23 @@ static bool jumpHeld;
 static void drawVelocity(void)
 {
         CColor color_a, color_b;
-        float lerp;
+        float lerp, scale, rate;
         int vel, vel2;
 
-        vel = (int)CVec_len(player.velocity);
+        /* Impact velocity effect */
+        if (impactProgress >= 0) {
+                if ((rate = IMPACT_RATE + IMPACT_RATE_V * impactVelocity) < 1)
+                        rate = 1;
+                if ((impactProgress += rate * p_frameSec) > 1)
+                        impactProgress = -1;
+        }
+        if (impactProgress >= 0) {
+                scale = 1 + impactProgress;
+                vel = (int)impactVelocity;
+        } else {
+                scale = 1;
+                vel = (int)CVec_len(player.velocity);
+        }
         vel2 = vel * vel;
         C_snprintf_buf(hudVelocity.string, "%d", vel);
 
@@ -90,12 +107,22 @@ static void drawVelocity(void)
         }
         hudVelocity.modulate = CColor_lerp(color_a, lerp, color_b);
 
+        /* Fade out impact velocity */
+        if (impactProgress >= 0) {
+                hudVelocity.modulate.a = 1 - impactProgress;
+                hudVelocity.jiggleRadius = 0;
+                hudVelocity.jiggleSpeed = 0;
+        }
+
         /* Jiggle with speed */
-        hudVelocity.jiggleRadius = vel * vel * VEL_JIGGLE_SCALE;
-        hudVelocity.jiggleSpeed = VEL_JIGGLE_SPEED;
+        else {
+                hudVelocity.jiggleRadius = vel * vel * VEL_JIGGLE_SCALE;
+                hudVelocity.jiggleSpeed = VEL_JIGGLE_SPEED;
+        }
 
         /* Scale with speed */
-        hudVelocity.scale = CVec(1 + vel * VEL_SCALE, 1 + vel * VEL_SCALE);
+        scale *= 1 + vel * VEL_SCALE;
+        hudVelocity.scale = CVec(scale, scale);
 
         RText_center(&hudVelocity,
                      CVec(r_widthScaled / 2, r_heightScaled - 10));
@@ -140,7 +167,7 @@ static CVec constrainedMouse(void)
 static int playerEvent(PEntity *entity, int event, void *args)
 {
         PImpactEvent *impactEvent;
-        float vel, force;
+        float vel;
         bool mirror;
 
         switch (event) {
@@ -169,8 +196,8 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 /* Mirror the sprite */
                 if (!(playerBody.mirror = playerHead.mirror =
                                           playerWeapon.mirror = mirror)) {
-                        playerHead.angle += M_PI;
-                        playerWeapon.angle += M_PI;
+                        playerHead.angle += C_PI;
+                        playerWeapon.angle += C_PI;
                 }
                 RSprite_center(&playerBody, player.origin,
                                player.size);
@@ -199,14 +226,16 @@ static int playerEvent(PEntity *entity, int event, void *args)
         /* Shake camera on impact */
         case PE_IMPACT:
                 impactEvent = args;
-                force = SHAKE_SCALE * impactEvent->impulse /
-                        (SHAKE_MASS + player.mass);
-                if (force >= SHAKE_MIN) {
+                if (impactEvent->impulse >= SHAKE_MIN) {
                         CVec shake;
+                        float scale;
 
-                        force -= SHAKE_MIN;
-                        shake = CVec_scalef(impactEvent->dir, force);
+                        scale = SHAKE_SCALE *
+                                logf(impactEvent->impulse - SHAKE_MIN);
+                        shake = CVec_scalef(impactEvent->dir, scale);
                         r_cameraShake = CVec_add(r_cameraShake, shake);
+                        impactProgress = 0;
+                        impactVelocity = CVec_len(player.velocity);
                 }
                 break;
 
@@ -316,7 +345,7 @@ static void checkWeapon(void)
 {
         PTrace trace;
         CVec dir, to;
-        float force;
+        float vel, force;
 
         /* Fire wait time */
         if ((fireDelay -= p_frameMsec) < 0)
@@ -336,15 +365,15 @@ static void checkWeapon(void)
                 return;
 
         /* Weapon impact */
-        force = CVec_dot(player.velocity, dir) * SWORD_FORCE_PER_V;
+        vel = CVec_len(player.velocity);
+        force = vel * SWORD_FORCE_PER_V;
         if (meleeProgress < 1)
                 force += SWORD_BOOST;
-        if (force < 0)
-                force = 0;
-        player.mass = force;
-        if (PEntity_impact(&player, trace.other, dir))
+        C_debug("Hit '%s' with %d force (%d velocity)",
+                trace.other->name, (int)force, (int)vel);
+        if (PEntity_impact_impulse(&player, trace.other, dir,
+                                   force * SWORD_FORCE_PLAYER, force))
                 stopMelee();
-        player.mass = 1;
         if (force < VEL_MIN * SWORD_FORCE_PER_V)
                 G_spawn_at("swordImpact_min", trace.end);
         else if (force <= VEL_WEAK * SWORD_FORCE_PER_V)
@@ -486,6 +515,7 @@ void G_spawnPlayer(CVec origin)
 
         /* Initial weapon state */
         meleeProgress = -1;
+        impactProgress = -1;
 
         /* Spawn player */
         C_zero(&player);

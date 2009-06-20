@@ -86,7 +86,7 @@ GMissile *GMissile_spawn(GMissileClass *misClass)
         mis->sprite.z = G_Z_MID;
         mis->entity.eventFunc = (PEventFunc)GMissile_eventFunc;
         mis->entity.size = CVec(misClass->size, misClass->size);
-        mis->entity.mass = 1;
+        mis->entity.mass = 0.1;
         mis->entity.fly = TRUE;
         mis->entity.impactOther = PIT_ENTITY;
         PEntity_spawn(&mis->entity, "Missile");

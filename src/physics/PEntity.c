@@ -158,6 +158,25 @@ CVec PEntity_center(const PEntity *entity)
 }
 
 /******************************************************************************\
+ Slow down an entity with a given impulse.
+\******************************************************************************/
+void PEntity_slowImpulse(PEntity *entity, float impulse)
+{
+        CVec diff_v;
+        float vel, diff;
+
+        if (entity->mass <= 0)
+                return;
+        diff = impulse / entity->mass;
+        if (diff >= (vel = CVec_len(entity->velocity))) {
+                entity->velocity = CVec(0, 0);
+                return;
+        }
+        diff_v = CVec_scalef(CVec_divf(entity->velocity, vel), diff);
+        entity->velocity = CVec_sub(entity->velocity, diff_v);
+}
+
+/******************************************************************************\
  Update an entity.
 \******************************************************************************/
 void PEntity_update(PEntity *entity)

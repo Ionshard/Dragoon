@@ -59,12 +59,13 @@ void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod)
 /******************************************************************************\
  Update shake effect.
 \******************************************************************************/
-void R_updateShake(CVec *offset, CVec *vel, float accel, float drag, float rand)
+void R_updateShake(CVec *offset, CVec *vel, float accel, float drag,
+                   float rand, float sec)
 {
-        *vel = CVec_add(*vel, CVec_scalef(*offset, -accel * c_frameSec));
-        if ((drag = 1 - drag * c_frameSec) < 0)
+        *vel = CVec_add(*vel, CVec_scalef(*offset, -accel * sec));
+        if ((drag = 1 - drag * sec) < 0)
                 drag = 0;
         *vel = CVec_scalef(*vel, drag);
-        *offset = CVec_add(*offset, CVec_scalef(*vel, c_frameSec));
+        *offset = CVec_add(*offset, CVec_scalef(*vel, sec));
 }
 

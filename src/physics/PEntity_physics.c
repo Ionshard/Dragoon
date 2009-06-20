@@ -55,25 +55,34 @@ static void PImpactEvent_computeOrigin(PImpactEvent *event, PEntity *entity)
  Check if either entity does not want the impact. Triggers impact effects.
  Returns FALSE if impact was avoided.
 \******************************************************************************/
-bool PEntity_impact(PEntity *entity, PEntity *other, CVec dir)
+bool PEntity_impact_impulse(PEntity *entity, PEntity *other, CVec dir,
+                            float impulseEntity, float impulseOther)
 {
         PImpactEvent impactEvent;
-        float velA, velB;
 
-        velA = CVec_dot(entity->velocity, dir);
-        velB = CVec_dot(other->velocity, dir);
         impactEvent.other = other;
         impactEvent.dir = dir;
-        impactEvent.impulse = velA * entity->mass + velB * other->mass;
+        impactEvent.impulse = impulseEntity;
         PImpactEvent_computeOrigin(&impactEvent, entity);
         if (PEntity_event(entity, PE_IMPACT, &impactEvent))
                 return FALSE;
         impactEvent.other = entity;
         impactEvent.dir = CVec_scalef(dir, -1.f);
+        impactEvent.impulse = impulseOther;
         PImpactEvent_computeOrigin(&impactEvent, other);
         if (PEntity_event(other, PE_IMPACT, &impactEvent))
                 return FALSE;
         return TRUE;
+}
+
+bool PEntity_impact(PEntity *entity, PEntity *other, CVec dir)
+{
+        float velA, velB, impulse;
+
+        velA = CVec_dot(entity->velocity, dir);
+        velB = CVec_dot(other->velocity, dir);
+        impulse = velA * entity->mass + velB * other->mass;
+        return PEntity_impact_impulse(entity, other, dir, impulse, impulse);
 }
 
 /******************************************************************************\

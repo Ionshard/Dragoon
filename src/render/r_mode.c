@@ -221,7 +221,7 @@ void R_beginCam(void)
 
         /* Camera shakes */
         R_updateShake(&r_cameraShake, &cameraShakeVel,
-                      SHAKE_ACCEL, SHAKE_DRAG, SHAKE_RAND);
+                      SHAKE_ACCEL, SHAKE_DRAG, SHAKE_RAND, c_frameSec);
         r_camera = CVec_add(r_camera, r_cameraShake);
 
         C_assert(!r_cameraOn);

@@ -86,8 +86,11 @@ CVec PEntity_center(const PEntity *);
 void PEntity_cleanup(PEntity *);
 int PEntity_event(PEntity *, int event, void *args);
 bool PEntity_impact(PEntity *entity, PEntity *other, CVec dir);
+bool PEntity_impact_impulse(PEntity *entity, PEntity *other, CVec dir,
+                            float impulseEntity, float impulseOther);
 void PEntity_impactType(PEntity *, PImpactType);
 void PEntity_kill(PEntity *);
+void PEntity_slowImpulse(PEntity *, float impulse);
 void PEntity_spawn(PEntity *, const char *className);
 PTrace PEntity_trace(PEntity *, CVec to);
 void PEntity_update(PEntity *);
