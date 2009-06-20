@@ -17,6 +17,9 @@ typedef struct {
         CVec origin, size;
 } SpawnParams;
 
+/* Player spawn location */
+CVec g_playerSpawn;
+
 /******************************************************************************\
  Load a map file into the current world.
 \******************************************************************************/
@@ -48,6 +51,7 @@ void G_loadMap(const char *filename, CVec offset)
                         continue;
                 entity->origin = CVec_add(params.origin, offset);
                 entity->size = params.size;
+                PEntity_event(entity, GE_INITED, NULL);
         }
         fclose(file);
         C_debug("Loaded map '%s', %d entities", filename, entities);

@@ -23,6 +23,7 @@ typedef struct GBoxClass {
         PImpactType impact, impactOther;
         float mass, elasticity, friction, impactDrag, gibForce, gibDensity;
         char impactEntity[C_NAME_MAX], gibEntity[C_NAME_MAX];
+        bool invisible, playerSpawn;
 } GBoxClass;
 
 /* Box entity */
@@ -67,7 +68,18 @@ int GBox_eventFunc(GBox *box, int event, void *args)
         PImpactEvent *impactEvent;
 
         switch (event) {
+
+        /* Update player spawn location */
+        case GE_INITED:
+                if (boxClass->playerSpawn)
+                        g_playerSpawn = box->entity.origin;
+                break;
+
         case PE_UPDATE:
+
+                /* Don't render invisible boxes */
+                if (boxClass->invisible && !g_edit[0])
+                        break;
                 box->sprite.origin = box->entity.origin;
                 box->sprite.size = box->entity.size;
 
@@ -223,6 +235,14 @@ void GBox_parseClass(FILE *file, const char *className)
                 /* How densely to spread out gibs */
                 else if (!strcasecmp(token, "gibDensity"))
                         boxClass->gibDensity = C_token_float(file);
+
+                /* This is a player spawn entity */
+                else if (!strcasecmp(token, "playerSpawn"))
+                        boxClass->playerSpawn = TRUE;
+
+                /* Only visible in the editor */
+                else if (!strcasecmp(token, "invisible"))
+                        boxClass->invisible = TRUE;
 
                 else
                         C_warning("Unknown box param '%s'", token);

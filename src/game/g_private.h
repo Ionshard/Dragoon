@@ -41,6 +41,10 @@ typedef enum {
            that receives this event, return non-zero to cancel the jump */
         GE_JUMPED_AWAY,
 
+        /* Called after map has loaded and the entity has been given a
+           position and size */
+        GE_INITED,
+
         G_EVENTS
 } GEvent;
 
@@ -94,6 +98,9 @@ bool G_controlEvent(GEvent);
 extern CVec g_control, g_mouse;
 extern int g_key, g_button;
 extern bool g_shift, g_alt, g_ctrl;
+
+/* g_map.c */
+extern CVec g_playerSpawn;
 
 /* g_menu.c */
 bool G_dispatch_menu(GEvent);
