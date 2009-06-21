@@ -14,7 +14,7 @@
 
 /* Keyboard */
 CVec g_control;
-int g_key;
+int g_key, g_keyCode;
 bool g_shift, g_alt, g_ctrl;
 static bool leftHeld, rightHeld, upHeld, downHeld;
 
@@ -47,11 +47,13 @@ void G_dispatch(const SDL_Event *ev)
                 return;
         case SDL_KEYDOWN:
                 event = GE_KEY_DOWN;
-                g_key = ev->key.keysym.sym;
+                g_key = (int)ev->key.keysym.sym;
+                g_keyCode = (int)ev->key.keysym.scancode;
                 break;
         case SDL_KEYUP:
                 event = GE_KEY_UP;
-                g_key = ev->key.keysym.sym;
+                g_key = (int)ev->key.keysym.sym;
+                g_keyCode = (int)ev->key.keysym.scancode;
                 break;
         case SDL_MOUSEMOTION:
                 event = GE_MOUSE_MOVE;

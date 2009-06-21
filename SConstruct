@@ -31,9 +31,6 @@ def path(p):
 # initialization so that SCons doesn't mess them up.
 default_env = Environment(ENV = os.environ, BUILDERS = {'GCH' : gch_builder})
 
-# Enable GCC C99
-default_env['CCFLAGS'] += '--std=c99'
-
 # Tells SCons to be smarter about caching dependencies
 default_env.SetOption('implicit_cache', 1)
 
