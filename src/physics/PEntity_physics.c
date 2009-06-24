@@ -28,28 +28,35 @@ static void PImpactEvent_computeOrigin(PImpactEvent *event, PEntity *entity)
 {
         PEntity *other = event->other;
         CVec origin_x, origin_y, center;
-        float dist_x, dist_y;
+        float dist_x, dist_y, offset;
 
         center = PEntity_center(entity);
         if (event->dir.x >= 0) {
                 dist_x = other->origin.x - center.x;
-                origin_x = CVec(other->origin.x,
-                                center.y + dist_x * event->dir.y);
+                offset = event->dir.x ?
+                         dist_x * event->dir.y / event->dir.x : 0;
+                origin_x = CVec(other->origin.x, center.y + offset);
         } else {
                 dist_x = center.x - other->origin.x - other->size.x;
-                origin_x = CVec(other->origin.x + other->size.x,
-                                center.y + dist_x * event->dir.y);
+                offset = event->dir.x ?
+                         dist_x * event->dir.y / event->dir.x : 0;
+                origin_x = CVec(other->origin.x + other->size.x, center.y -
+                                offset);
         }
         if (event->dir.y >= 0) {
                 dist_y = other->origin.y - center.y;
-                origin_y = CVec(center.x + dist_y * event->dir.x,
-                                other->origin.y);
+                offset = event->dir.y ?
+                         dist_y * event->dir.x / event->dir.y : 0;
+                origin_y = CVec(center.x + offset, other->origin.y);
         } else {
                 dist_y = center.y - other->origin.y - other->size.y;
-                origin_y = CVec(center.x + dist_y * event->dir.x,
+                offset = event->dir.y ?
+                         dist_y * event->dir.x / event->dir.y : 0;
+                origin_y = CVec(center.x - offset,
                                 other->origin.y + other->size.y);
         }
-        event->origin = dist_x >= 0 && dist_x < dist_y ? origin_x : origin_y;
+        event->origin = dist_y < 0 || (dist_x >= 0 && dist_x < dist_y) ?
+                        origin_x : origin_y;
 
 }
 /******************************************************************************\

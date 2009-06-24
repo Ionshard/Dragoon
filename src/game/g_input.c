@@ -55,13 +55,6 @@ void G_dispatch(const SDL_Event *ev)
 
         /* Before dispatch */
         switch (ev->type) {
-        case SDL_ACTIVEEVENT:
-
-                /* If the mouse focus was lost, reset the cursor position */
-                if (!ev->active.gain && (ev->active.state & SDL_APPMOUSEFOCUS))
-                        g_mouse = CVec(-1, -1);
-
-                return;
         case SDL_KEYDOWN:
                 event = GE_KEY_DOWN;
                 g_key = (int)ev->key.keysym.sym;
@@ -76,9 +69,7 @@ void G_dispatch(const SDL_Event *ev)
                 event = GE_MOUSE_MOVE;
                 g_mouseRel = CVec_divf(CVec(ev->motion.xrel, ev->motion.yrel),
                                        r_scale);
-                if (ev->motion.x != -1 && ev->motion.y != -1)
-                        g_mouse = CVec_divf(CVec(ev->motion.x, ev->motion.y),
-                                            r_scale);
+                g_mouse = CVec_divf(CVec(ev->motion.x, ev->motion.y), r_scale);
                 break;
         case SDL_MOUSEBUTTONDOWN:
                 event = GE_MOUSE_DOWN;
@@ -91,10 +82,6 @@ void G_dispatch(const SDL_Event *ev)
         default:
                 return;
         }
-
-        /* Propagate event */
-        if (G_dispatch_editor(event) || G_dispatch_menu(event) ||
-            G_dispatch_player(event));
 
         /* Process control event */
         if (event == GE_KEY_DOWN) {
@@ -109,9 +96,12 @@ void G_dispatch(const SDL_Event *ev)
                 rightHeld &= dir.x <= 0;
                 upHeld &= dir.y >= 0;
                 downHeld &= dir.y <= 0;
-        } else
-                return;
+        }
         g_control = CVec(rightHeld - leftHeld, downHeld - upHeld);
+
+        /* Propagate event */
+        if (G_dispatch_editor(event) || G_dispatch_menu(event) ||
+            G_dispatch_player(event));
 }
 
 /******************************************************************************\
@@ -122,7 +112,7 @@ void G_update(void)
         G_updatePlayer();
 
         /* Should only render entities now so offset the camera */
-        r_cameraSec = p_frameSec;
+        r_cameraSec = g_edit[0] ? c_frameSec : p_frameSec;
         R_beginCam();
         P_updateEntities();
         R_endCam();

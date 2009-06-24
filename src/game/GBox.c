@@ -17,6 +17,9 @@
 #define OFFSET_VEL 5000
 #define OFFSET_DRAG 5
 
+/* Delay between impact effects */
+#define IMPACT_DELAY 200
+
 /* Box class */
 typedef struct GBoxClass {
         GEntityClass entity;
@@ -31,6 +34,7 @@ typedef struct GBox {
         PEntity entity;
         RSprite sprite;
         CVec offset, offsetVel;
+        int lastImpact;
 } GBox;
 
 /******************************************************************************\
@@ -128,7 +132,10 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                 }
 
                 /* Impact effect entity */
-                G_spawn_at(boxClass->impactEntity, impactEvent->origin);
+                if (c_timeMsec - box->lastImpact >= IMPACT_DELAY) {
+                        G_spawn_at(boxClass->impactEntity, impactEvent->origin);
+                        box->lastImpact = c_timeMsec;
+                }
 
                 /* Drag effect for glue boxes */
                 if (boxClass->impactDrag > 0)

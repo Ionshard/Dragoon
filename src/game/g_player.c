@@ -28,7 +28,7 @@
 /* Impact render effect params */
 #define IMPACT_RATE 7
 #define IMPACT_RATE_V -0.01
-#define IMPACT_DELAY 100
+#define IMPACT_DELAY 50
 
 /* Cannon parameters */
 #define CANNON_DELAY 300
@@ -40,6 +40,7 @@
 #define SWORD_BOOST (50 * SWORD_FORCE_PER_V)
 #define SWORD_FORCE_PLAYER 0.5
 #define SWORD_IMPACT_SLOW 500
+#define SWORD_CLIPPING 0
 
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
@@ -63,7 +64,7 @@ static CVec aim, muzzle;
 static float meleeProgress, impactProgress, impactVelocity,
              clip_left, clip_right, clip_top, clip_bottom;
 static int meleeDelay, fireDelay, jumpDelay;
-static bool jumpHeld;
+static bool meleeHeld, jumpHeld;
 
 /******************************************************************************\
  Draw velocity meter.
@@ -214,7 +215,7 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 RSprite_draw(&playerHead);
 
                 /* Draw weapon with clipping */
-                if (meleeProgress >= 0) {
+                if (SWORD_CLIPPING && meleeProgress >= 0) {
                         R_pushClip();
                         R_clip_left(clip_left);
                         R_clip_top(clip_top);
@@ -272,6 +273,17 @@ static void disableClip(void) {
         clip_top = -R_CLIP_LIMIT;
         clip_right = R_CLIP_LIMIT;
         clip_bottom = R_CLIP_LIMIT;
+}
+
+/******************************************************************************\
+ Slash with the melee weapon.
+\******************************************************************************/
+static void startMelee(void)
+{
+        if (fireDelay)
+                return;
+        RSprite_play(&playerWeapon, "sword");
+        meleeProgress = 0;
 }
 
 /******************************************************************************\
@@ -377,6 +389,10 @@ static void checkWeapon(void)
         CVec dir, to;
         float vel, force;
 
+        /* Start a slash if it was interrupted for some reason */
+        if (meleeHeld && meleeProgress < 0)
+                startMelee();
+
         /* Wait times */
         if ((fireDelay -= p_frameMsec) < 0)
                 fireDelay = 0;
@@ -398,14 +414,16 @@ static void checkWeapon(void)
                 return;
 
         /* Melee weapon clipping */
-        if (trace.end.x == trace.other->origin.x - 1)
-                clip_right = trace.end.x + 1;
-        if (trace.end.x == trace.other->origin.x + trace.other->size.x)
-                clip_left = trace.end.x;
-        if (trace.end.y == trace.other->origin.y - 1)
-                clip_bottom = trace.end.y + 1;
-        if (trace.end.y == trace.other->origin.y + trace.other->size.y)
-                clip_top = trace.end.y;
+        if (SWORD_CLIPPING) {
+                if (trace.end.x == trace.other->origin.x - 1)
+                        clip_right = trace.end.x + 1;
+                if (trace.end.x == trace.other->origin.x + trace.other->size.x)
+                        clip_left = trace.end.x;
+                if (trace.end.y == trace.other->origin.y - 1)
+                        clip_bottom = trace.end.y + 1;
+                if (trace.end.y == trace.other->origin.y + trace.other->size.y)
+                        clip_top = trace.end.y;
+        }
 
         /* Weapon impact */
         vel = CVec_len(player.velocity);
@@ -515,16 +533,19 @@ bool G_dispatch_player(GEvent event)
         /* Swing sword */
         if (g_button == SDL_BUTTON_LEFT) {
                 if (event == GE_MOUSE_DOWN) {
-                        RSprite_play(&playerWeapon, "sword");
-                        meleeProgress = 0;
-                } if (event == GE_MOUSE_UP)
+                        startMelee();
+                        meleeHeld = TRUE;
+                }
+                if (event == GE_MOUSE_UP) {
                         stopMelee();
+                        meleeHeld = FALSE;
+                }
         }
 
         /* Fire cannon */
         else if (event == GE_MOUSE_DOWN && g_button == SDL_BUTTON_RIGHT &&
                  fireDelay <= 0) {
-                RSprite_play(&playerWeapon, "repelCannon");
+                stopMelee();
                 G_fireMissile(&player, "repelMissile", muzzle, aim);
                 fireDelay += CANNON_DELAY;
         }
