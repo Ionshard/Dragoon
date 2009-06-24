@@ -187,17 +187,13 @@ bool G_dispatch_editor(GEvent event)
                         G_pushForwardEntity(editEntity);
 
                 /* All other keys can be used to select an entity */
-                else if (!selectEntity(g_key))
-                        G_controlEvent(event);
+                selectEntity(g_key);
 
                 return TRUE;
         }
 
-        /* Stop moving camera */
-        else if (event == GE_KEY_UP) {
-                G_controlEvent(event);
+        else if (event == GE_KEY_UP)
                 return TRUE;
-        }
 
         /* Mouse clicks */
         else if (event == GE_MOUSE_DOWN) {

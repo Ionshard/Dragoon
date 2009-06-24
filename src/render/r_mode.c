@@ -18,7 +18,7 @@
 /* Camera shake params */
 #define SHAKE_ACCEL 5000
 #define SHAKE_DRAG 10
-#define SHAKE_RAND 0
+#define SHAKE_MAX 128
 
 /* Screen mode parameters */
 int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale;
@@ -29,6 +29,7 @@ CCount r_countFaces, r_countLines;
 
 /* World-space camera */
 CVec r_camera, r_cameraTo, r_cameraShake;
+float r_cameraSec;
 bool r_cameraOn;
 static CVec cameraShakeVel;
 
@@ -215,13 +216,13 @@ void R_beginCam(void)
         float prop;
 
         /* Move the current camera view toward the target view */
-        if ((prop = CAMERA_SPEED * c_frameSec) > 1)
+        if ((prop = CAMERA_SPEED * r_cameraSec) > 1)
                 prop = 1;
         r_camera = CVec_lerp(r_camera, prop, r_cameraTo);
 
         /* Camera shakes */
-        R_updateShake(&r_cameraShake, &cameraShakeVel,
-                      SHAKE_ACCEL, SHAKE_DRAG, SHAKE_RAND, c_frameSec);
+        R_updateShake(&r_cameraShake, &cameraShakeVel, SHAKE_ACCEL, SHAKE_DRAG,
+                      r_cameraSec, SHAKE_MAX);
         r_camera = CVec_add(r_camera, r_cameraShake);
 
         C_assert(!r_cameraOn);

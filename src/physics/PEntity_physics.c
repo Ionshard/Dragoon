@@ -26,31 +26,32 @@
 \******************************************************************************/
 static void PImpactEvent_computeOrigin(PImpactEvent *event, PEntity *entity)
 {
-        float min, max;
+        PEntity *other = event->other;
+        CVec origin_x, origin_y, center;
+        float dist_x, dist_y;
 
-        if (fabsf(event->dir.x) >= fabsf(event->dir.y)) {
-                event->origin.x = event->dir.x < 0 ? entity->origin.x :
-                                  entity->origin.x + entity->size.x;
-                min = entity->origin.y;
-                if (event->other->origin.y > min)
-                        min = event->other->origin.y;
-                max = entity->origin.y + entity->size.y;
-                if (event->other->origin.y + event->other->size.y < max)
-                        max = event->other->origin.y + event->other->size.y;
-                event->origin.y = (max + min) / 2;
+        center = PEntity_center(entity);
+        if (event->dir.x >= 0) {
+                dist_x = other->origin.x - center.x;
+                origin_x = CVec(other->origin.x,
+                                center.y + dist_x * event->dir.y);
         } else {
-                min = entity->origin.x;
-                if (event->other->origin.x > min)
-                        min = event->other->origin.x;
-                max = entity->origin.x + entity->size.x;
-                if (event->other->origin.x + event->other->size.x < max)
-                        max = event->other->origin.x + event->other->size.x;
-                event->origin.x = (max + min) / 2;
-                event->origin.y = event->dir.y < 0 ? entity->origin.y :
-                                  entity->origin.y + entity->size.y;
+                dist_x = center.x - other->origin.x - other->size.x;
+                origin_x = CVec(other->origin.x + other->size.x,
+                                center.y + dist_x * event->dir.y);
         }
-}
+        if (event->dir.y >= 0) {
+                dist_y = other->origin.y - center.y;
+                origin_y = CVec(center.x + dist_y * event->dir.x,
+                                other->origin.y);
+        } else {
+                dist_y = center.y - other->origin.y - other->size.y;
+                origin_y = CVec(center.x + dist_y * event->dir.x,
+                                other->origin.y + other->size.y);
+        }
+        event->origin = dist_x >= 0 && dist_x < dist_y ? origin_x : origin_y;
 
+}
 /******************************************************************************\
  Check if either entity does not want the impact. Triggers impact effects.
  Returns FALSE if impact was avoided.
@@ -69,7 +70,6 @@ bool PEntity_impact_impulse(PEntity *entity, PEntity *other, CVec dir,
         impactEvent.other = entity;
         impactEvent.dir = CVec_scalef(dir, -1.f);
         impactEvent.impulse = impulseOther;
-        PImpactEvent_computeOrigin(&impactEvent, other);
         if (PEntity_event(other, PE_IMPACT, &impactEvent))
                 return FALSE;
         return TRUE;

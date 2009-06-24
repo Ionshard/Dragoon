@@ -81,7 +81,7 @@ int P_entsInBox(CVec origin, CVec size, PImpactType,
 #define P_entsInBox_buf(o, s, t, b) \
         P_entsInBox(o, s, t, b, sizeof (b) / sizeof (*(b)))
 
-/* PEntity.c */
+/* PEntity.c, PEntity_physics.c */
 CVec PEntity_center(const PEntity *);
 void PEntity_cleanup(PEntity *);
 int PEntity_event(PEntity *, int event, void *args);
@@ -100,7 +100,7 @@ void P_updateEntities(void);
 extern CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 extern CCount p_countEntities;
 extern CVec p_topLeft, p_bottomRight;
-extern float p_frameSec, p_gravity, p_speed;
+extern float p_frameSec, p_timeSec, p_gravity, p_speed;
 extern int p_timeMsec, p_frameMsec, p_frame;
 
 /* PTrace.c */

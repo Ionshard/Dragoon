@@ -268,7 +268,7 @@ static void RSprite_draw_quad(RSprite *sprite, bool smooth)
 /******************************************************************************\
  Draw a sprite on screen.
 \******************************************************************************/
-void RSprite_draw(RSprite *sprite)
+void RSprite_draw_still(RSprite *sprite)
 {
         CColor modulate;
         CVec center;
@@ -336,8 +336,11 @@ void RSprite_draw(RSprite *sprite)
         /* Cleanup */
         glPopMatrix();
         R_checkErrors();
+}
 
-        /* Pump animation */
+void RSprite_draw(RSprite *sprite)
+{
+        RSprite_draw_still(sprite);
         RSprite_animate(sprite);
 }
 

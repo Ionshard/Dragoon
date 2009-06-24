@@ -19,7 +19,7 @@ CLink *p_linkAll, *p_linkWorld, *p_linkEntity;
 float p_gravity = 500.f;
 
 /* Physics time elapsed this frame (may be less than real time) */
-float p_frameSec, p_speed = 1.f;
+float p_frameSec, p_timeSec, p_speed = 1.f;
 int p_timeMsec, p_frameMsec, p_frame;
 
 /* Entity counters */
@@ -224,6 +224,7 @@ void P_updateEntities(void)
                 p_frameMsec = P_FRAME_MSEC_MAX;
         p_frameSec = p_frameMsec * 0.001f;
         p_timeMsec += p_frameMsec;
+        p_timeSec = p_timeMsec * 0.001f;
 
         /* Update every entity */
         for (link = p_linkAll; link; link = CLink_next(link)) {

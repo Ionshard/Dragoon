@@ -13,7 +13,7 @@
 #include "g_private.h"
 
 /* Impact offset effect parameters */
-#define OFFSET_MAX 1
+#define OFFSET_MAX 2
 #define OFFSET_VEL 5000
 #define OFFSET_DRAG 5
 
@@ -86,7 +86,8 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                 /* Impact reeling effect */
                 if (box->offset.x || box->offset.y) {
                         R_updateShake(&box->offset, &box->offsetVel,
-                                      OFFSET_VEL, OFFSET_DRAG, 0, p_frameSec);
+                                      OFFSET_VEL, OFFSET_DRAG, p_frameSec,
+                                      OFFSET_MAX);
                         box->sprite.origin = CVec_add(box->sprite.origin,
                                                       box->offset);
                 }
@@ -155,7 +156,8 @@ GBox *GBox_spawn(GBoxClass *boxClass)
         GBox *box;
 
         C_new(&box);
-        RSprite_init(&box->sprite, boxClass->entity.spriteName);
+        RSprite_init_time(&box->sprite, boxClass->entity.spriteName,
+                          &p_timeMsec);
         box->entity.eventFunc = (PEventFunc)GBox_eventFunc;
         box->sprite.z = boxClass->entity.z;
         box->entity.mass = boxClass->mass;

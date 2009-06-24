@@ -23,12 +23,29 @@ CVec g_mouse, g_mouseRel;
 int g_button;
 
 /******************************************************************************\
+ Convert a keycode to a direction.
+\******************************************************************************/
+static CVec keyToDir(int key)
+{
+        if (key == 'a' || key == 'j' || key == SDLK_LEFT)
+                return CVec(-1, 0);
+        if (key == 'd' || key == 'l' || key == SDLK_RIGHT)
+                return CVec(1, 0);
+        if (key == 'w' || key == 'i' || key == SDLK_UP || key == ' ')
+                return CVec(0, -1);
+        if (key == 's' || key == 'k' || key == SDLK_DOWN)
+                return CVec(0, 1);
+        return CVec(0, 0);
+}
+
+/******************************************************************************\
  Dispatch an event from SDL.
 \******************************************************************************/
 void G_dispatch(const SDL_Event *ev)
 {
         SDLMod mod;
         GEvent event;
+        CVec dir;
 
         /* Update modifiers */
         mod = SDL_GetModState();
@@ -59,7 +76,9 @@ void G_dispatch(const SDL_Event *ev)
                 event = GE_MOUSE_MOVE;
                 g_mouseRel = CVec_divf(CVec(ev->motion.xrel, ev->motion.yrel),
                                        r_scale);
-                g_mouse = CVec_divf(CVec(ev->motion.x, ev->motion.y), r_scale);
+                if (ev->motion.x != -1 && ev->motion.y != -1)
+                        g_mouse = CVec_divf(CVec(ev->motion.x, ev->motion.y),
+                                            r_scale);
                 break;
         case SDL_MOUSEBUTTONDOWN:
                 event = GE_MOUSE_DOWN;
@@ -75,51 +94,9 @@ void G_dispatch(const SDL_Event *ev)
 
         /* Propagate event */
         if (G_dispatch_editor(event) || G_dispatch_menu(event) ||
-            G_dispatch_player(event))
-                return;
-}
+            G_dispatch_player(event));
 
-/******************************************************************************\
- Update game entities, the editor, and menus.
-\******************************************************************************/
-void G_update(void)
-{
-        G_updatePlayer();
-
-        /* Should only render entities now so offset the camera */
-        R_beginCam();
-        P_updateEntities();
-        R_endCam();
-        G_drawHud();
-
-        /* Propagate event */
-        if (G_dispatch_editor(GE_UPDATE) || G_dispatch_menu(GE_UPDATE))
-                return;
-}
-
-/******************************************************************************\
- Convert a keycode to a direction.
-\******************************************************************************/
-static CVec keyToDir(int key)
-{
-        if (key == 'a' || key == 'j' || key == SDLK_LEFT)
-                return CVec(-1, 0);
-        if (key == 'd' || key == 'l' || key == SDLK_RIGHT)
-                return CVec(1, 0);
-        if (key == 'w' || key == 'i' || key == SDLK_UP || key == ' ')
-                return CVec(0, -1);
-        if (key == 's' || key == 'k' || key == SDLK_DOWN)
-                return CVec(0, 1);
-        return CVec(0, 0);
-}
-
-/******************************************************************************\
- Process control events.
-\******************************************************************************/
-bool G_controlEvent(GEvent event)
-{
-        CVec dir;
-
+        /* Process control event */
         if (event == GE_KEY_DOWN) {
                 dir = keyToDir(g_key);
                 leftHeld |= dir.x < 0;
@@ -133,8 +110,26 @@ bool G_controlEvent(GEvent event)
                 upHeld &= dir.y >= 0;
                 downHeld &= dir.y <= 0;
         } else
-                return FALSE;
+                return;
         g_control = CVec(rightHeld - leftHeld, downHeld - upHeld);
-        return TRUE;
+}
+
+/******************************************************************************\
+ Update game entities, the editor, and menus.
+\******************************************************************************/
+void G_update(void)
+{
+        G_updatePlayer();
+
+        /* Should only render entities now so offset the camera */
+        r_cameraSec = p_frameSec;
+        R_beginCam();
+        P_updateEntities();
+        R_endCam();
+        G_drawHud();
+
+        /* Propagate event */
+        if (G_dispatch_editor(GE_UPDATE) || G_dispatch_menu(GE_UPDATE))
+                return;
 }
 

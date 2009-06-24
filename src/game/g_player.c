@@ -15,7 +15,7 @@
 /* Player movement parameters */
 #define JUMP_V 150
 #define JUMP_DELAY 100
-#define JUMP_TRACE 0
+#define JUMP_TRACE 4
 #define WALLJUMP_VX (JUMP_V / C_SQRT2)
 #define WALLJUMP_VY (JUMP_V / C_SQRT2)
 #define GROUND_A 800
@@ -28,6 +28,7 @@
 /* Impact render effect params */
 #define IMPACT_RATE 7
 #define IMPACT_RATE_V -0.01
+#define IMPACT_DELAY 100
 
 /* Cannon parameters */
 #define CANNON_DELAY 300
@@ -38,6 +39,7 @@
 #define SWORD_FORCE_PER_V 3
 #define SWORD_BOOST (50 * SWORD_FORCE_PER_V)
 #define SWORD_FORCE_PLAYER 0.5
+#define SWORD_IMPACT_SLOW 500
 
 /* Minimal distance the pointer keeps from the player */
 #define CURSOR_DIST 18
@@ -46,6 +48,7 @@
 #define VEL_SCALE 0.001f
 #define VEL_JIGGLE_SCALE 0.000005f
 #define VEL_JIGGLE_SPEED 0.1f
+#define VEL_NONE 50.f
 #define VEL_MIN 200.f
 #define VEL_WEAK 350.f
 #define VEL_STRONG 500.f
@@ -57,8 +60,9 @@ static PEntity player;
 static RSprite playerHead, playerBody, playerWeapon, playerGlow, cursor;
 static RText hudVelocity;
 static CVec aim, muzzle;
-static float meleeProgress, impactProgress, impactVelocity;
-static int fireDelay, jumpDelay;
+static float meleeProgress, impactProgress, impactVelocity,
+             clip_left, clip_right, clip_top, clip_bottom;
+static int meleeDelay, fireDelay, jumpDelay;
 static bool jumpHeld;
 
 /******************************************************************************\
@@ -208,6 +212,21 @@ static int playerEvent(PEntity *entity, int event, void *args)
                 /* Draw player */
                 RSprite_draw(&playerBody);
                 RSprite_draw(&playerHead);
+
+                /* Draw weapon with clipping */
+                if (meleeProgress >= 0) {
+                        R_pushClip();
+                        R_clip_left(clip_left);
+                        R_clip_top(clip_top);
+                        R_clip_right(clip_right);
+                        R_clip_bottom(clip_bottom);
+                        playerWeapon.z = G_Z_CHAR;
+                        RSprite_draw_still(&playerWeapon);
+                        R_clip_disable();
+                        R_popClip();
+                        playerWeapon.z = G_Z_REAR;
+                } else
+                        playerWeapon.z = G_Z_CHAR;
                 RSprite_draw(&playerWeapon);
 
                 /* Player glow effect */
@@ -246,12 +265,23 @@ static int playerEvent(PEntity *entity, int event, void *args)
 }
 
 /******************************************************************************\
+ Disable melee weapon clipping.
+\******************************************************************************/
+static void disableClip(void) {
+        clip_left = -R_CLIP_LIMIT;
+        clip_top = -R_CLIP_LIMIT;
+        clip_right = R_CLIP_LIMIT;
+        clip_bottom = R_CLIP_LIMIT;
+}
+
+/******************************************************************************\
  Put away the melee weapon.
 \******************************************************************************/
 static void stopMelee(void)
 {
         meleeProgress = -1;
         RSprite_play(&playerWeapon, "repelCannon");
+        disableClip();
 }
 
 /******************************************************************************\
@@ -347,9 +377,11 @@ static void checkWeapon(void)
         CVec dir, to;
         float vel, force;
 
-        /* Fire wait time */
+        /* Wait times */
         if ((fireDelay -= p_frameMsec) < 0)
                 fireDelay = 0;
+        if ((meleeDelay -= p_frameMsec) < 0)
+                meleeDelay = 0;
 
         /* Check melee weapon */
         if (meleeProgress < 0)
@@ -361,19 +393,33 @@ static void checkWeapon(void)
         player.ignore = TRUE;
         trace = PTrace_line(muzzle, to, PIT_ENTITY);
         player.ignore = FALSE;
+        disableClip();
         if (trace.prop >= 1)
                 return;
+
+        /* Melee weapon clipping */
+        if (trace.end.x == trace.other->origin.x - 1)
+                clip_right = trace.end.x + 1;
+        if (trace.end.x == trace.other->origin.x + trace.other->size.x)
+                clip_left = trace.end.x;
+        if (trace.end.y == trace.other->origin.y - 1)
+                clip_bottom = trace.end.y + 1;
+        if (trace.end.y == trace.other->origin.y + trace.other->size.y)
+                clip_top = trace.end.y;
 
         /* Weapon impact */
         vel = CVec_len(player.velocity);
         force = vel * SWORD_FORCE_PER_V;
         if (meleeProgress < 1)
                 force += SWORD_BOOST;
-        C_debug("Hit '%s' with %d force (%d velocity)",
-                trace.other->name, (int)force, (int)vel);
-        if (PEntity_impact_impulse(&player, trace.other, dir,
-                                   force * SWORD_FORCE_PLAYER, force))
-                stopMelee();
+        if (force < VEL_NONE)
+                return;
+        PEntity_impact_impulse(&player, trace.other, dir,
+                               force * SWORD_FORCE_PLAYER, force);
+        PEntity_slowImpulse(&player, SWORD_IMPACT_SLOW * p_frameSec);
+        if (meleeDelay > 0)
+                return;
+        meleeDelay += IMPACT_DELAY;
         if (force < VEL_MIN * SWORD_FORCE_PER_V)
                 G_spawn_at("swordImpact_min", trace.end);
         else if (force <= VEL_WEAK * SWORD_FORCE_PER_V)
@@ -483,11 +529,6 @@ bool G_dispatch_player(GEvent event)
                 fireDelay += CANNON_DELAY;
         }
 
-
-        /* Update controls */
-        if (!G_controlEvent(event))
-                return FALSE;
-
         return TRUE;
 }
 
@@ -502,20 +543,22 @@ void G_spawnPlayer(CVec origin)
         playerClass.z = G_Z_CHAR;
 
         /* Init player sprites */
-        RSprite_init(&playerHead, "playerHead");
-        RSprite_init(&playerBody, "playerBody");
-        RSprite_init(&playerGlow, "playerGlow");
-        RSprite_init(&playerWeapon, "repelCannon");
+        RSprite_init_time(&playerHead, "playerHead", &p_timeMsec);
+        RSprite_init_time(&playerBody, "playerBody", &p_timeMsec);
+        RSprite_init_time(&playerGlow, "playerGlow", &p_timeMsec);
+        RSprite_init_time(&playerWeapon, "repelCannon", &p_timeMsec);
 
         /* Init HUD sprites */
-        RSprite_init(&cursor, "cursor");
+        RSprite_init_time(&cursor, "cursor", &p_timeMsec);
         cursor.z = G_Z_HUD;
         RText_init_range(&hudVelocity, "gfx/digits.png", '0', 4, 3, "0");
         hudVelocity.z = G_Z_HUD;
+        hudVelocity.timeMsec = &p_timeMsec;
 
         /* Initial weapon state */
         meleeProgress = -1;
         impactProgress = -1;
+        disableClip();
 
         /* Spawn player */
         C_zero(&player);

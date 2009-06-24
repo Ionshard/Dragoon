@@ -20,13 +20,16 @@
 /* Menu fade-in/out rate */
 #define R_MENU_FADE 2
 
+/* Clipping limit */
+#define R_CLIP_LIMIT 100000
+
 /* Animated sprite object */
 typedef struct {
         struct RSpriteData *data;
         CColor modulate;
         CVec origin, size;
         float angle, z;
-        int initMsec;
+        int *timeMsec, initMsec;
         bool flip, mirror;
         char name[C_NAME_MAX];
 } RSprite;
@@ -39,7 +42,7 @@ typedef struct {
         CVec scale, boxSize, origin, explode;
         CColor modulate;
         float jiggleRadius, jiggleSpeed, z;
-        int rows, cols, start;
+        int rows, cols, start, *timeMsec;
 } RText;
 
 /* Menu option object */
@@ -68,9 +71,17 @@ typedef struct {
 } RMenu;
 
 /* r_draw.c */
+void R_clip(CVec origin, CVec size);
+void R_clip_disable(void);
+void R_clip_left(float);
+void R_clip_top(float);
+void R_clip_right(float);
+void R_clip_bottom(float);
 void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod);
-void R_updateShake(CVec *offset, CVec *vel,
-                   float accel, float drag, float rand, float sec);
+void R_updateShake(CVec *offset, CVec *vel, float accel, float drag, float sec,
+                   float offset_max);
+void R_pushClip(void);
+void R_popClip(void);
 
 /* RMenu.c */
 void RMenu_activate(RMenu *, bool next);
@@ -93,6 +104,7 @@ bool R_setVideoMode(void);
 
 extern CCount r_countFaces;
 extern CVec r_camera, r_cameraTo, r_cameraShake;
+extern float r_cameraSec;
 extern int r_height, r_width, r_widthScaled, r_heightScaled, r_scale;
 extern bool r_clear, r_fullscreen;
 
@@ -101,9 +113,11 @@ void R_cleanupSprites(void);
 void R_cleanupTextures(void);
 void R_parseSpriteCfg(const char *filename);
 void RSprite_animate(RSprite *);
-bool RSprite_init(RSprite *, const char *name);
+#define RSprite_init(s, n) RSprite_init_time(s, n, &c_timeMsec)
+bool RSprite_init_time(RSprite *, const char *name, int *timeMsec);
 void RSprite_center(RSprite *, CVec origin, CVec size);
 void RSprite_draw(RSprite *);
+void RSprite_draw_still(RSprite *);
 CVec RSprite_getCenter(const RSprite *);
 void RSprite_lookAt(RSprite *, CVec origin);
 bool RSprite_play(RSprite *, const char *name);

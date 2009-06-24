@@ -29,6 +29,7 @@ void RText_init_range(RText *text, const char *font, int start,
         text->cols = cols;
         text->start = start;
         text->scale = CVec(1, 1);
+        text->timeMsec = &c_timeMsec;
 
         /* Load font texture */
         if (!font || !font[0])
@@ -95,7 +96,7 @@ void RText_draw(RText *text)
                 if (text->jiggleRadius > 0) {
                         float time;
 
-                        time = c_timeMsec * text->jiggleSpeed;
+                        time = *text->timeMsec * text->jiggleSpeed;
                         diff = CVec(sin(time + 787 * i), cos(time + 386 * i));
                         diff = CVec_scalef(diff, text->jiggleRadius);
                         origin = CVec_add(origin, diff);

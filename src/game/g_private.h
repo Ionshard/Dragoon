@@ -16,12 +16,13 @@
 #include "g_public.h"
 
 /* Z values for game layers */
-#define G_Z_HUD  0.00f
-#define G_Z_FORE 0.25f
-#define G_Z_CHAR 0.33f
-#define G_Z_MID  0.50f
-#define G_Z_REAR 0.75f
-#define G_Z_BACK 1.00f
+#define G_Z_MENU 0.0f
+#define G_Z_HUD  0.1f
+#define G_Z_FORE 0.3f
+#define G_Z_CHAR 0.4f
+#define G_Z_MID  0.5f
+#define G_Z_REAR 0.9f
+#define G_Z_BACK 1.0f
 
 /* Player muzzle vertical offset from entity center */
 #define G_MUZZLE_OFFSET 2
@@ -93,8 +94,6 @@ struct GFountain *GFountain_spawn(struct GFountainClass *);
 void GGroup_parseClass(FILE *, const char *className);
 
 /* g_input.c */
-bool G_controlEvent(GEvent);
-
 extern CVec g_control, g_mouse;
 extern int g_key, g_button;
 extern bool g_shift, g_alt, g_ctrl;

@@ -274,7 +274,7 @@ CVec R_spriteSize(const char *name)
  Initialize an RSprite to display a named sprite. Returns FALSE if the named
  sprite has not been loaded. Resets sprite size and modulation.
 \******************************************************************************/
-bool RSprite_init(RSprite *sprite, const char *name)
+bool RSprite_init_time(RSprite *sprite, const char *name, int *timeMsec)
 {
         RSpriteData *data;
 
@@ -286,7 +286,7 @@ bool RSprite_init(RSprite *sprite, const char *name)
         sprite->data = data;
         sprite->size = CVec_scale(data->boxSize, data->scale);
         sprite->modulate = CColor_white();
-        sprite->initMsec = c_timeMsec;
+        sprite->initMsec = *(sprite->timeMsec = timeMsec);
         C_strncpy_buf(sprite->name, name);
         return TRUE;
 }
@@ -301,7 +301,7 @@ void RSprite_animate(RSprite *sprite)
         int next;
 
         if (!sprite || !sprite->data || !sprite->data->nextNames_len ||
-            sprite->initMsec + sprite->data->nextMsec > c_timeMsec)
+            sprite->initMsec + sprite->data->nextMsec > *sprite->timeMsec)
                 return;
         next = (int)(C_rand() * sprite->data->nextNames_len);
         if (!(data = CNamed_get(dataRoot, sprite->data->nextNames[next]))) {
@@ -312,7 +312,7 @@ void RSprite_animate(RSprite *sprite)
         center = CVec_add(sprite->origin, sprite->data->center);
         sprite->data = data;
         sprite->size = CVec_scale(data->boxSize, data->scale);
-        sprite->initMsec = c_timeMsec;
+        sprite->initMsec = *sprite->timeMsec;
         RSprite_center(sprite, center, CVec(0, 0));
 }
 
@@ -325,7 +325,7 @@ bool RSprite_play(RSprite *sprite, const char *name)
                 return FALSE;
         if (!strcmp(name, sprite->name))
                 return TRUE;
-        return RSprite_init(sprite, name);
+        return RSprite_init_time(sprite, name, sprite->timeMsec);
 }
 
 /******************************************************************************\
