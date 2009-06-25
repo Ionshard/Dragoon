@@ -73,6 +73,8 @@ void RMenu_update(RMenu *menu)
         if (!C_fade(&menu->fade, menu->shown, R_MENU_FADE))
                 return;
         menuExplode = CVec_scalef(CVec(20, 0), 1 - menu->fade);
+        if (menu->hideLeft)
+                menuExplode.x = -menuExplode.x;
 
         /* Render the menu */
         glMatrixMode(GL_MODELVIEW);

@@ -44,7 +44,7 @@ typedef struct GFountain {
 static int GParticle_eventFunc(GParticle *particle, int event, void *args)
 {
         if ((event == PE_IMPACT && particle->dieOnImpact) ||
-            (event == PE_UPDATE && particle->deathMsec <= c_timeMsec))
+            (event == PE_UPDATE && particle->deathMsec <= p_timeMsec))
                 PEntity_kill(&particle->entity);
         else if (event == PE_UPDATE) {
                 if (particle->entity.size.x || particle->entity.size.y)
@@ -57,9 +57,9 @@ static int GParticle_eventFunc(GParticle *particle, int event, void *args)
                                          C_PI / 2;
 
                 /* Fade-out before dying */
-                if (particle->deathMsec - c_timeMsec < particle->fadeOut)
+                if (particle->deathMsec - p_timeMsec < particle->fadeOut)
                         particle->sprite.modulate.a =
-                                (float)(particle->deathMsec - c_timeMsec) /
+                                (float)(particle->deathMsec - p_timeMsec) /
                                 particle->fadeOut;
 
                 RSprite_draw(&particle->sprite);
@@ -92,7 +92,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
                 return 0;
 
         /* Spawn new particles */
-        while (c_timeMsec >= fountain->intervalNext) {
+        while (p_timeMsec >= fountain->intervalNext) {
                 C_new(&particle);
                 fountainClass = fountain->entity.entityClass;
                 C_assert(fountainClass);
@@ -110,7 +110,7 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
                 particle->entity.velocity =
                         CVec_add(fountainClass->velocity,
                                  CVec_rand(fountainClass->velocityRand));
-                particle->deathMsec = c_timeMsec + fountainClass->lifetime;
+                particle->deathMsec = p_timeMsec + fountainClass->lifetime;
                 particle->fadeOut = fountainClass->fadeOut;
                 particle->dieOnImpact = fountainClass->dieOnImpact;
                 if (fountainClass->noGravity)
@@ -141,7 +141,7 @@ GFountain *GFountain_spawn(GFountainClass *fountainClass)
         RSprite_init(&fountain->sprite, fountainClass->entity.spriteName);
         fountain->sprite.z = fountainClass->entity.z;
         fountain->entity.eventFunc = (PEventFunc)GFountain_eventFunc;
-        fountain->intervalNext = c_timeMsec + fountainClass->interval +
+        fountain->intervalNext = p_timeMsec + fountainClass->interval +
                                  C_rand() * fountainClass->intervalRand;
         if ((fountain->particles = fountainClass->particles) > 0)
                 fountain->particles += C_rand() * fountainClass->particlesRand;

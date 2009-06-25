@@ -23,6 +23,13 @@
 /* Clipping limit */
 #define R_CLIP_LIMIT 100000
 
+/* Menu visibility types */
+typedef enum {
+        R_MENU_HIDE_RIGHT,
+        R_MENU_SHOWN,
+        R_MENU_HIDE_LEFT,
+} RMenuVisibility;
+
 /* Animated sprite object */
 typedef struct {
         struct RSpriteData *data;
@@ -60,6 +67,7 @@ typedef struct RMenuEntry {
         CCallback onActivate;
         float fade;
         bool enabled;
+        void *data;
 } RMenuEntry;
 
 /* Menu container object */
@@ -67,7 +75,7 @@ typedef struct {
         RMenuEntry *entries, *selected;
         CVec origin, size;
         float fade, z;
-        bool shown;
+        bool shown, hideLeft;
 } RMenu;
 
 /* r_draw.c */

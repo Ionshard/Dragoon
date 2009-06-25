@@ -129,6 +129,7 @@ void RText_draw(RText *text)
                 size_old = text->sprites[i].size;
                 text->sprites[i].size = CVec_scale(text->sprites[i].size,
                                                    text->scale);
+                text->sprites[i].timeMsec = text->timeMsec;
                 RSprite_draw(text->sprites + i);
                 text->sprites[i].size = size_old;
                 glPopMatrix();

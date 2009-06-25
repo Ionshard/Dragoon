@@ -27,6 +27,12 @@
 /* Player muzzle vertical offset from entity center */
 #define G_MUZZLE_OFFSET 2
 
+/* Velocity levels */
+#define G_VEL_NONE 50.f
+#define G_VEL_MIN 200.f
+#define G_VEL_WEAK 350.f
+#define G_VEL_STRONG 500.f
+
 /* Input events, extends physics events */
 typedef enum {
         GE_UPDATE = PE_UPDATE,
@@ -93,6 +99,11 @@ struct GFountain *GFountain_spawn(struct GFountainClass *);
 /* GGroup.c */
 void GGroup_parseClass(FILE *, const char *className);
 
+/* g_hud.c */
+void G_initHud(void);
+
+extern float g_impactProgress, g_impactVelocity;
+
 /* g_input.c */
 extern CVec g_control, g_mouse;
 extern int g_key, g_button;
@@ -117,4 +128,7 @@ bool G_dispatch_player(GEvent);
 void G_drawHud(void);
 void G_spawnPlayer(CVec origin);
 void G_updatePlayer(void);
+
+extern PEntity g_player;
+extern CVec g_aim, g_muzzle;
 

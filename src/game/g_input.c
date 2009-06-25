@@ -14,7 +14,8 @@
 
 /* Keyboard */
 CVec g_control;
-int g_key, g_keyCode;
+int g_key, g_keyCode,
+    g_bindLeft = 'a', g_bindRight = 'd', g_bindUp = 'w', g_bindDown = 's';
 bool g_shift, g_alt, g_ctrl;
 static bool leftHeld, rightHeld, upHeld, downHeld;
 
@@ -27,13 +28,13 @@ int g_button;
 \******************************************************************************/
 static CVec keyToDir(int key)
 {
-        if (key == 'a' || key == 'j' || key == SDLK_LEFT)
+        if (key == g_bindLeft || key == SDLK_LEFT)
                 return CVec(-1, 0);
-        if (key == 'd' || key == 'l' || key == SDLK_RIGHT)
+        if (key == g_bindRight || key == SDLK_RIGHT)
                 return CVec(1, 0);
-        if (key == 'w' || key == 'i' || key == SDLK_UP || key == ' ')
+        if (key == g_bindUp || key == SDLK_UP || key == ' ')
                 return CVec(0, -1);
-        if (key == 's' || key == 'k' || key == SDLK_DOWN)
+        if (key == g_bindDown || key == SDLK_DOWN)
                 return CVec(0, 1);
         return CVec(0, 0);
 }
