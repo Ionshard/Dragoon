@@ -44,6 +44,18 @@ void R_cleanupTextures(void)
 }
 
 /******************************************************************************\
+ Reset texture cache after a resolution change.
+\******************************************************************************/
+void R_resetTextures(void)
+{
+        RTexture *pt;
+
+        for (pt = (RTexture *)textureRoot; pt; pt = (RTexture *)pt->named.next)
+                pt->upScale = FALSE;
+        C_debug("Reset texture cache");
+}
+
+/******************************************************************************\
  If the texture's SDL surface has changed, the image must be reloaded into
  OpenGL. This function will do this. It is assumed that the texture surface
  format has not changed since the texture was created.

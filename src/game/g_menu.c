@@ -13,7 +13,6 @@
 #include "g_private.h"
 
 /* Menu parameters */
-#define MENU_WIDTH 80
 #define MENU_HEIGHT 80
 #define MENU_MARGIN 16
 
@@ -32,7 +31,9 @@ bool g_limbo;
 char g_play[C_NAME_MAX];
 
 static RMenu menus[MENUS], *menuShown;
+static RMenuEntry *applyOptions, *resolution, *fullscreen;
 static RMenuOption *bindLeft, *bindRight, *bindUp, *bindDown, *bindOption;
+static SDL_Rect **videoModes;
 static int *bindCode;
 static float menuBgFade;
 
@@ -97,17 +98,83 @@ static void bindKey(RMenuEntry *entry)
 }
 
 /******************************************************************************\
+ Populates the video mode list.
+\******************************************************************************/
+static void populateModes(RMenuEntry *entry)
+{
+        RMenuOption *best;
+        int i, best_diff, diff;
+
+        videoModes = SDL_ListModes(NULL, SDL_OPENGL | SDL_GL_DOUBLEBUFFER |
+                                         SDL_HWPALETTE | SDL_HWSURFACE |
+                                         SDL_FULLSCREEN);
+
+        /* SDL_ListModes() won't always return a list */
+        if (!videoModes || videoModes == (void *)-1) {
+                C_warning("SDL_ListModes() did not return a list of modes");
+                videoModes = NULL;
+                return;
+        }
+
+        /* Add the video modes that work for us */
+        best = NULL;
+        best_diff = 100000;
+        for (i = 0; videoModes[i]; i++) {
+                RMenuOption *option;
+                int w, h;
+                const char *label;
+
+                if (videoModes[i]->w < R_WIDTH || videoModes[i]->h < R_HEIGHT)
+                        continue;
+                w = videoModes[i]->w - r_width;
+                h = videoModes[i]->h - r_height;
+                diff = w * w + h * h;
+                label = C_va("%dx%d", videoModes[i]->w, videoModes[i]->h);
+                option = RMenuEntry_prepend(entry, label, i);
+                if (diff < best_diff) {
+                        best = option;
+                        best_diff = diff;
+                }
+        }
+        entry->selected = best;
+}
+
+/******************************************************************************\
+ Enable the apply entry.
+\******************************************************************************/
+static void enableApply(void)
+{
+        applyOptions->enabled = TRUE;
+}
+
+/******************************************************************************\
+ Apply new video settings.
+\******************************************************************************/
+static void applyChanges(void)
+{
+        int mode;
+
+        applyOptions->enabled = FALSE;
+        r_fullscreen = (int)fullscreen->selected->value;
+        mode = (int)resolution->selected->value;
+        r_width = videoModes[mode]->w;
+        r_height = videoModes[mode]->h;
+        R_setVideoMode();
+        R_initGl();
+}
+
+/******************************************************************************\
  Initialize menus.
 \******************************************************************************/
 void G_initMenu(void)
 {
         RMenuEntry *entry;
+        RMenuOption *option;
 
         g_limbo = TRUE;
 
         /* Main menu */
         RMenu_init(menus + MENU_MAIN);
-        menus[MENU_MAIN].size.x = MENU_WIDTH;
         RMenu_add(menus + MENU_MAIN,
                   RMenuEntry_new("New Game", (CCallback)G_newGame), 0);
         entry = RMenuEntry_new("Continue", NULL);
@@ -115,41 +182,52 @@ void G_initMenu(void)
         RMenu_add(menus + MENU_MAIN, entry, 0);
         entry = RMenuEntry_new("Options", (CCallback)showMenu_right);
         entry->data = menus + MENU_OPTIONS;
-        RMenu_add(menus + MENU_MAIN, entry, 4);
+        RMenu_add(menus + MENU_MAIN, entry, 0);
         RMenu_add(menus + MENU_MAIN,
                   RMenuEntry_new("Quit", (CCallback)onQuit), 4);
 
         /* Options menu */
         RMenu_init(menus + MENU_OPTIONS);
-        menus[MENU_OPTIONS].size.x = MENU_WIDTH;
+        menus[MENU_OPTIONS].size.x = 140;
         entry = RMenuEntry_new("Key Bindings", (CCallback)showMenu_right);
         entry->data = menus + MENU_KEYS;
         RMenu_add(menus + MENU_OPTIONS, entry, 0);
-        entry = RMenuEntry_new("Resolution", NULL);
-        entry->enabled = FALSE;
+        resolution = entry =
+                RMenuEntry_new("Resolution:", (CCallback)enableApply);
+        populateModes(entry);
+        RMenu_add(menus + MENU_OPTIONS, entry, 4);
+        fullscreen = entry =
+                RMenuEntry_new("Fullscreen:", (CCallback)enableApply);
+        RMenuEntry_append(entry, "No", 0);
+        option = RMenuEntry_append(entry, "Yes", 1);
+        if (r_fullscreen)
+                entry->selected = option;
         RMenu_add(menus + MENU_OPTIONS, entry, 0);
+        applyOptions = entry = RMenuEntry_new("Apply", (CCallback)applyChanges);
+        entry->enabled = FALSE;
+        RMenu_add(menus + MENU_OPTIONS, entry, 4);
         entry = RMenuEntry_new("Back", (CCallback)showMenu_left);
         entry->data = menus + MENU_MAIN;
-        RMenu_add(menus + MENU_OPTIONS, entry, 4);
+        RMenu_add(menus + MENU_OPTIONS, entry, 0);
 
         /* Key bindings menu */
         RMenu_init(menus + MENU_KEYS);
-        menus[MENU_KEYS].size.x = MENU_WIDTH;
+        menus[MENU_KEYS].size.x = 80;
         entry = RMenuEntry_new("Left:", (CCallback)bindKey);
         entry->data = &g_bindLeft;
-        bindLeft = RMenuEntry_add(entry, C_keyName(g_bindLeft), 0);
+        bindLeft = RMenuEntry_append(entry, C_keyName(g_bindLeft), 0);
         RMenu_add(menus + MENU_KEYS, entry, 0);
         entry = RMenuEntry_new("Right:", (CCallback)bindKey);
         entry->data = &g_bindRight;
-        bindRight = RMenuEntry_add(entry, C_keyName(g_bindRight), 0);
+        bindRight = RMenuEntry_append(entry, C_keyName(g_bindRight), 0);
         RMenu_add(menus + MENU_KEYS, entry, 0);
         entry = RMenuEntry_new("Up:", (CCallback)bindKey);
         entry->data = &g_bindUp;
-        bindUp = RMenuEntry_add(entry, C_keyName(g_bindUp), 0);
+        bindUp = RMenuEntry_append(entry, C_keyName(g_bindUp), 0);
         RMenu_add(menus + MENU_KEYS, entry, 0);
         entry = RMenuEntry_new("Down:", (CCallback)bindKey);
         entry->data = &g_bindDown;
-        bindDown = RMenuEntry_add(entry, C_keyName(g_bindDown), 0);
+        bindDown = RMenuEntry_append(entry, C_keyName(g_bindDown), 0);
         RMenu_add(menus + MENU_KEYS, entry, 0);
         entry = RMenuEntry_new("Back", (CCallback)showMenu_left);
         entry->data = menus + MENU_OPTIONS;
@@ -224,9 +302,9 @@ bool G_dispatch_menu(GEvent event)
 
                         /* Navigate menu */
                         if (g_key == SDLK_DOWN)
-                                RMenu_select(menuShown, FALSE);
+                                RMenu_scroll(menuShown, FALSE);
                         else if (g_key == SDLK_UP)
-                                RMenu_select(menuShown, TRUE);
+                                RMenu_scroll(menuShown, TRUE);
                         else if (g_key == SDLK_RIGHT || g_key == SDLK_RETURN)
                                 RMenu_activate(menuShown, TRUE);
                         else if (g_key == SDLK_LEFT)
@@ -254,14 +332,14 @@ bool G_dispatch_menu(GEvent event)
 
         /* Update menu */
         else if (event == GE_UPDATE) {
-                CVec origin;
                 int i;
 
                 /* Update menu positions */
-                origin = CVec(r_widthScaled / 2 - MENU_WIDTH / 2,
-                              r_heightScaled - MENU_HEIGHT / 2 - MENU_MARGIN);
                 for (i = 0; i < MENUS; i++)
-                        menus[i].origin = origin;
+                        menus[i].origin =
+                                CVec(r_widthScaled / 2 - menus[i].size.x / 2,
+                                     r_heightScaled - MENU_HEIGHT / 2 -
+                                     MENU_MARGIN);
 
                 /* Let some time go by before showing the menu for the
                    first time */

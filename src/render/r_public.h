@@ -96,10 +96,11 @@ void RMenu_activate(RMenu *, bool next);
 void RMenu_add(RMenu *, RMenuEntry *, float margin);
 void RMenu_cleanup(RMenu *);
 #define RMenu_init(m) C_zero(m)
-void RMenu_select(RMenu *, bool up);
+void RMenu_scroll(RMenu *, bool up);
 void RMenu_update(RMenu *);
-RMenuOption *RMenuEntry_add(RMenuEntry *, const char *text, float value);
+RMenuOption *RMenuEntry_append(RMenuEntry *, const char *text, float value);
 RMenuEntry *RMenuEntry_new(const char *label, CCallback onActivate);
+RMenuOption *RMenuEntry_prepend(RMenuEntry *, const char *text, float value);
 
 /* r_mode.c */
 void R_begin(void);

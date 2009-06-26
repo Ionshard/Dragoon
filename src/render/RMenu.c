@@ -17,10 +17,10 @@
 #define JIGGLE_RADIUS 0.5
 #define JIGGLE_SPEED 0.01
 #define ENTRY_FADE 0.5
-#define DISABLED_FADE 0.1
+#define DISABLED_FADE 0.15
 
 /******************************************************************************\
- Add an entry to a menu.
+ Append an entry to a menu.
 \******************************************************************************/
 void RMenu_add(RMenu *menu, RMenuEntry *newEntry, float margin)
 {
@@ -32,7 +32,7 @@ void RMenu_add(RMenu *menu, RMenuEntry *newEntry, float margin)
                 newEntry->label.origin.x = menu->size.x / 2 -
                                            RText_size(&newEntry->label).x / 2;
 
-        /* Add the entry to the menu linked list */
+        /* Add the entry to the end of the menu linked list */
         newEntry->next = NULL;
         menu->size.y += newEntry->label.boxSize.y;
         if (!menu->entries) {
@@ -76,6 +76,10 @@ void RMenu_update(RMenu *menu)
         if (menu->hideLeft)
                 menuExplode.x = -menuExplode.x;
 
+        /* Do not select a disabled item */
+        if (menu->selected && !menu->selected->enabled)
+                RMenu_scroll(menu, FALSE);
+
         /* Render the menu */
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -88,9 +92,10 @@ void RMenu_update(RMenu *menu)
                 CVec explode;
 
                 /* Entry label */
-                if (!entry->enabled)
+                if (!entry->enabled) {
                         color = CColor(1, 1, 1, DISABLED_FADE);
-                else {
+                        entry->label.jiggleRadius = 0;
+                } else {
                         C_fade(&entry->fade, menu->selected == entry,
                                JIGGLE_RATE);
                         entry->label.jiggleRadius = entry->fade * JIGGLE_RADIUS;
@@ -146,9 +151,9 @@ void RMenu_update(RMenu *menu)
 }
 
 /******************************************************************************\
- Add a new option to a menu entry.
+ Append a new option to a menu entry.
 \******************************************************************************/
-RMenuOption *RMenuEntry_add(RMenuEntry *entry, const char *text, float value)
+RMenuOption *RMenuEntry_append(RMenuEntry *entry, const char *text, float value)
 {
         RMenuOption *option, *newOption;
 
@@ -163,6 +168,22 @@ RMenuOption *RMenuEntry_add(RMenuEntry *entry, const char *text, float value)
                      option = option->next);
                 option->next = newOption;
         }
+        return newOption;
+}
+
+/******************************************************************************\
+ Prepend a new option to a menu entry.
+\******************************************************************************/
+RMenuOption *RMenuEntry_prepend(RMenuEntry *entry, const char *text,
+                                float value)
+{
+        RMenuOption *newOption;
+
+        C_new(&newOption);
+        RText_init(&newOption->text, NULL, text);
+        newOption->value = value;
+        newOption->next = entry->options;
+        entry->selected = entry->options = newOption;
         return newOption;
 }
 
@@ -183,7 +204,7 @@ RMenuEntry *RMenuEntry_new(const char *label, CCallback onActivate)
 /******************************************************************************\
  Change menu selection up or down.
 \******************************************************************************/
-void RMenu_select(RMenu *menu, bool up)
+void RMenu_scroll(RMenu *menu, bool up)
 {
         RMenuEntry *entry, *enabled;
 

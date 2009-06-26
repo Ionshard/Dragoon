@@ -83,6 +83,9 @@ bool R_setVideoMode(void)
         C_debug("Set mode %dx%d (%dx%d scaled), scale factor %d",
                 video->w, video->h, r_widthScaled, r_heightScaled, r_scale);
 
+        /* Reset textures because resolution has changed */
+        R_resetTextures();
+
         R_checkErrors();
         return TRUE;
 }
