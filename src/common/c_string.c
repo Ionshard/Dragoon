@@ -124,3 +124,115 @@ char *C_escape(const char *str)
         return buf;
 }
 
+/******************************************************************************\
+ Returns the statically-allocated name of a SDL key.
+\******************************************************************************/
+const char *C_keyName(SDLKey key)
+{
+        static char buf[C_BUF_SIZE];
+
+        /* Return ASCII directly */
+        if (key >= ' ' && key < 0x7f) {
+                buf[0] = key;
+                buf[1] = 0;
+                return buf;
+        }
+
+        /* Keypad numerals */
+        if (key >= SDLK_KP0 && key <= SDLK_KP9) {
+                snprintf(buf, sizeof (buf), "KP %d", key - SDLK_KP0);
+                return buf;
+        }
+
+        /* Function keys */
+        if (key >= SDLK_F1 && key <= SDLK_F15) {
+                snprintf(buf, sizeof (buf), "F%d", key - SDLK_F1 + 1);
+                return buf;
+        }
+
+        /* Special keys */
+        switch (key) {
+        case SDLK_SPACE:
+                return "Space";
+        case SDLK_TAB:
+                return "Tab";
+        case SDLK_CLEAR:
+                return "Clear";
+        case SDLK_PAUSE:
+                return "Pause";
+        case SDLK_ESCAPE:
+                return "Escape";
+        case SDLK_BACKSPACE:
+                return "Bksp";
+        case SDLK_DELETE:
+                return "Delete";
+        case SDLK_RETURN:
+                return "Enter";
+        case SDLK_KP_PERIOD:
+                return "KP .";
+        case SDLK_KP_DIVIDE:
+                return "KP /";
+        case SDLK_KP_MULTIPLY:
+                return "KP *";
+        case SDLK_KP_MINUS:
+                return "KP -";
+        case SDLK_KP_PLUS:
+                return "KP +";
+        case SDLK_KP_ENTER:
+                return "KP Ent";
+        case SDLK_KP_EQUALS:
+                return "KP =";
+        case SDLK_UP:
+                return "Up";
+        case SDLK_DOWN:
+                return "Down";
+        case SDLK_RIGHT:
+                return "Right";
+        case SDLK_LEFT:
+                return "Left";
+        case SDLK_INSERT:
+                return "Insert";
+        case SDLK_HOME:
+                return "Home";
+        case SDLK_END:
+                return "End";
+        case SDLK_PAGEUP:
+                return "PgUp";
+        case SDLK_PAGEDOWN:
+                return "PgDn";
+        case SDLK_NUMLOCK:
+                return "NumLk";
+        case SDLK_CAPSLOCK:
+                return "CapsLk";
+        case SDLK_SCROLLOCK:
+                return "ScrlLk";
+        case SDLK_RSHIFT:
+                return "RShift";
+        case SDLK_LSHIFT:
+                return "LShift";
+        case SDLK_RCTRL:
+                return "RCtrl";
+        case SDLK_LCTRL:
+                return "LCtrl";
+        case SDLK_RALT:
+                return "RAlt";
+        case SDLK_LALT:
+                return "LAlt";
+        case SDLK_RMETA:
+                return "RMeta";
+        case SDLK_LMETA:
+                return "LMeta";
+        case SDLK_RSUPER:
+                return "RSuper";
+        case SDLK_LSUPER:
+                return "LSuper";
+        case SDLK_MODE:
+                return "Mode";
+        case SDLK_COMPOSE:
+                return "Compose";
+        default:
+                snprintf(buf, sizeof (buf), "0x%d", key);
+                return buf;
+        }
+}
+

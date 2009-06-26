@@ -248,6 +248,7 @@ char *C_escape(const char *);
 #define C_isDigit(c) ((c) >= '0' && (c) <= '9')
 #define C_isPrint(c) ((c) > 0 && (c) < 0x7f)
 #define C_isSpace(c) ((c) > 0 && (c) <= ' ')
+const char *C_keyName(SDLKey);
 #define C_snprintf_buf(buf, fmt, ...) \
         snprintf(buf, sizeof (buf), fmt, ## __VA_ARGS__)
 #define C_strncpy(d, s, l) C_strncpy_full(__FILE__, d, s, l)

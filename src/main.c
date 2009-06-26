@@ -63,6 +63,12 @@ static void registerVars(void)
         C_register_int(&r_height, "r_height", "Screen height", TRUE);
         C_register_int(&r_fullscreen, "r_fullscreen", "Fullscreen mode", TRUE);
 
+        /* Key bindings */
+        C_register_int(&g_bindLeft, "g_bindLeft", "Left key code", TRUE);
+        C_register_int(&g_bindRight, "g_bindRight", "Right key code", TRUE);
+        C_register_int(&g_bindUp, "g_bindUp", "Up key code", TRUE);
+        C_register_int(&g_bindDown, "g_bindDown", "Down key code", TRUE);
+
         /* Editor */
         C_register_buf(g_edit, "edit", "Filename of map to edit", FALSE);
 

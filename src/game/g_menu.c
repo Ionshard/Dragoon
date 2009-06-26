@@ -32,6 +32,8 @@ bool g_limbo;
 char g_play[C_NAME_MAX];
 
 static RMenu menus[MENUS], *menuShown;
+static RMenuOption *bindLeft, *bindRight, *bindUp, *bindDown, *bindOption;
+static int *bindCode;
 static float menuBgFade;
 
 /******************************************************************************\
@@ -84,6 +86,17 @@ static void showMenu_left(RMenuEntry *entry)
 }
 
 /******************************************************************************\
+ Activation function for key binding.
+\******************************************************************************/
+static void bindKey(RMenuEntry *entry)
+{
+        entry->options[0].text.string[0] = 0x7f;
+        entry->options[0].text.string[1] = 0;
+        bindCode = entry->data;
+        bindOption = entry->options;
+}
+
+/******************************************************************************\
  Initialize menus.
 \******************************************************************************/
 void G_initMenu(void)
@@ -122,6 +135,22 @@ void G_initMenu(void)
         /* Key bindings menu */
         RMenu_init(menus + MENU_KEYS);
         menus[MENU_KEYS].size.x = MENU_WIDTH;
+        entry = RMenuEntry_new("Left:", (CCallback)bindKey);
+        entry->data = &g_bindLeft;
+        bindLeft = RMenuEntry_add(entry, C_keyName(g_bindLeft), 0);
+        RMenu_add(menus + MENU_KEYS, entry, 0);
+        entry = RMenuEntry_new("Right:", (CCallback)bindKey);
+        entry->data = &g_bindRight;
+        bindRight = RMenuEntry_add(entry, C_keyName(g_bindRight), 0);
+        RMenu_add(menus + MENU_KEYS, entry, 0);
+        entry = RMenuEntry_new("Up:", (CCallback)bindKey);
+        entry->data = &g_bindUp;
+        bindUp = RMenuEntry_add(entry, C_keyName(g_bindUp), 0);
+        RMenu_add(menus + MENU_KEYS, entry, 0);
+        entry = RMenuEntry_new("Down:", (CCallback)bindKey);
+        entry->data = &g_bindDown;
+        bindDown = RMenuEntry_add(entry, C_keyName(g_bindDown), 0);
+        RMenu_add(menus + MENU_KEYS, entry, 0);
         entry = RMenuEntry_new("Back", (CCallback)showMenu_left);
         entry->data = menus + MENU_OPTIONS;
         RMenu_add(menus + MENU_KEYS, entry, 4);
@@ -182,6 +211,16 @@ bool G_dispatch_menu(GEvent event)
 {
         if (event == GE_KEY_DOWN) {
                 if (menuShown) {
+
+                        /* Binding a key */
+                        if (bindCode) {
+                                *bindCode = g_key;
+                                strcpy(bindOption->text.string,
+                                       C_keyName(*bindCode));
+                                bindCode = NULL;
+                                bindOption = NULL;
+                                return TRUE;
+                        }
 
                         /* Navigate menu */
                         if (g_key == SDLK_DOWN)

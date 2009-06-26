@@ -23,6 +23,8 @@ void G_parseConfig(const char *filename);
 void G_dispatch(const SDL_Event *);
 void G_update(void);
 
+extern int g_bindLeft, g_bindRight, g_bindUp, g_bindDown;
+
 /* g_map.c */
 void G_loadMap(const char *filename, CVec offset);
 void G_saveMap(const char *filename);
