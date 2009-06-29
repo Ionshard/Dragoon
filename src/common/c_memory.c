@@ -41,7 +41,7 @@ static int memCalls;
 #if CHECKED
 static MemTag **findRoot(const void *pointer)
 {
-        return memRoots + (((int)pointer >> 4) % ROOT_BINS);
+        return memRoots + (((unsigned int)pointer >> 4) % ROOT_BINS);
 }
 #endif
 

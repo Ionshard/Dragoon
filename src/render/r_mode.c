@@ -16,9 +16,7 @@
 #define CAMERA_SPEED 10
 
 /* Camera shake params */
-#define SHAKE_ACCEL 5000
-#define SHAKE_DRAG 10
-#define SHAKE_MAX 128
+#define SHAKE_DRAG 5
 
 /* Screen mode parameters */
 int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale;
@@ -28,10 +26,9 @@ bool r_clear, r_fullscreen;
 CCount r_countFaces, r_countLines;
 
 /* World-space camera */
-CVec r_camera, r_cameraTo, r_cameraShake;
-float r_cameraSec;
+CVec r_camera, r_cameraTo;
+float r_cameraSec, r_cameraShake;
 bool r_cameraOn;
-static CVec cameraShakeVel;
 
 /* Screenshots */
 static char screenshot[256];
@@ -224,9 +221,9 @@ void R_beginCam(void)
         r_camera = CVec_lerp(r_camera, prop, r_cameraTo);
 
         /* Camera shakes */
-        R_updateShake(&r_cameraShake, &cameraShakeVel, SHAKE_ACCEL, SHAKE_DRAG,
-                      r_cameraSec, SHAKE_MAX);
-        r_camera = CVec_add(r_camera, r_cameraShake);
+        if (r_cameraShake)
+                r_camera = CVec_add(r_camera, C_shake(&r_cameraShake,
+                                                      SHAKE_DRAG, r_cameraSec));
 
         C_assert(!r_cameraOn);
         glMatrixMode(GL_MODELVIEW);

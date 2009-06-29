@@ -13,9 +13,8 @@
 #include "g_private.h"
 
 /* Impact offset effect parameters */
-#define OFFSET_MAX 2
-#define OFFSET_VEL 5000
-#define OFFSET_DRAG 5
+#define SHAKE_SCALE 2
+#define SHAKE_DRAG 5
 
 /* Delay between impact effects */
 #define IMPACT_DELAY 200
@@ -33,7 +32,7 @@ typedef struct GBoxClass {
 typedef struct GBox {
         PEntity entity;
         RSprite sprite;
-        CVec offset, offsetVel;
+        float shake;
         int lastImpact;
 } GBox;
 
@@ -88,12 +87,11 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                 box->sprite.size = box->entity.size;
 
                 /* Impact reeling effect */
-                if (box->offset.x || box->offset.y) {
-                        R_updateShake(&box->offset, &box->offsetVel,
-                                      OFFSET_VEL, OFFSET_DRAG, p_frameSec,
-                                      OFFSET_MAX);
-                        box->sprite.origin = CVec_add(box->sprite.origin,
-                                                      box->offset);
+                if (box->shake) {
+                        CVec diff;
+
+                        diff = C_shake(&box->shake, SHAKE_DRAG, p_frameSec);
+                        box->sprite.origin = CVec_add(box->sprite.origin, diff);
                 }
 
                 RSprite_draw(&box->sprite);
@@ -109,8 +107,6 @@ int GBox_eventFunc(GBox *box, int event, void *args)
 
                 /* Did this impact kill the box? */
                 if (boxClass->gibForce > 0) {
-                        CVec offset;
-
                         if (impactEvent->impulse >= boxClass->gibForce) {
                                 CVec vel;
                                 float prop;
@@ -125,10 +121,8 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                         }
 
                         /* Not dead -- reel from the impact */
-                        offset = CVec_scalef(impactEvent->dir, -OFFSET_MAX *
-                                             impactEvent->impulse /
-                                             boxClass->gibForce);
-                        box->offset = CVec_add(box->offset, offset);
+                        box->shake += SHAKE_SCALE * impactEvent->impulse /
+                                                    boxClass->gibForce;
                 }
 
                 /* Impact effect entity */

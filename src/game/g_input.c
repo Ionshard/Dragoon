@@ -117,6 +117,7 @@ void G_update(void)
         R_beginCam();
         P_updateEntities();
         R_endCam();
+        R_drawDistort();
         G_drawHud();
 
         /* Propagate event */

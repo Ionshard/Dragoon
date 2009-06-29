@@ -152,13 +152,8 @@ static int playerEvent(PEntity *entity, int event, void *args)
         case PE_IMPACT:
                 impactEvent = args;
                 if (impactEvent->impulse >= SHAKE_MIN) {
-                        CVec shake;
-                        float scale;
-
-                        scale = SHAKE_SCALE *
-                                logf(impactEvent->impulse - SHAKE_MIN);
-                        shake = CVec_scalef(impactEvent->dir, scale);
-                        r_cameraShake = CVec_add(r_cameraShake, shake);
+                        r_cameraShake += SHAKE_SCALE *
+                                         logf(impactEvent->impulse - SHAKE_MIN);
                         g_impactProgress = 0;
                         g_impactVelocity = CVec_len(g_player.velocity);
                 }

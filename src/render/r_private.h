@@ -88,6 +88,7 @@ extern int r_videoMem, r_videoMemMax;
 
 /* RTexture.c */
 void R_resetTextures(void);
+RTexture *RTexture_alloc(int w, int h);
 void RTexture_cleanup(RTexture *);
 void RTexture_free(RTexture *);
 #define RTexture_deselect() RTexture_select(NULL, FALSE, FALSE)

@@ -39,6 +39,7 @@ static void cleanup(void)
         G_cleanupEntities();
         R_cleanupSprites();
         R_cleanupTextures();
+        R_cleanupDistort();
         SDL_Quit();
         C_cleanupVars();
         C_checkLeaks();
@@ -159,6 +160,7 @@ int main(int argc, char *argv[])
         if (!R_setVideoMode())
                 return 1;
         R_initGl();
+        R_initDistort();
 
         /* Hide cursor */
         SDL_ShowCursor(SDL_DISABLE);

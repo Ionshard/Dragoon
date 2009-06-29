@@ -103,3 +103,16 @@ int C_randDet(int last)
         return (1664525 * last + 1013904223) % RAND_MAX;
 }
 
+/******************************************************************************\
+ Update an exponentially decaying shake.
+\******************************************************************************/
+CVec C_shake(float *amount, float decay, float sec)
+{
+        CVec v;
+
+        v = CVec_randf(*amount, *amount);
+        if ((*amount /= 1 + decay * sec) < 0.01)
+                *amount = 0;
+        return v;
+}
+

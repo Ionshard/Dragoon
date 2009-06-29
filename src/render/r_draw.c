@@ -64,23 +64,6 @@ void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod)
 }
 
 /******************************************************************************\
- Update shake effect.
-\******************************************************************************/
-void R_updateShake(CVec *offset, CVec *vel, float accel, float drag, float sec,
-                   float limit)
-{
-        float scale;
-
-        *vel = CVec_add(*vel, CVec_scalef(*offset, -accel * sec));
-        if ((drag = 1 - drag * sec) < 0)
-                drag = 0;
-        *vel = CVec_scalef(*vel, drag);
-        *offset = CVec_add(*offset, CVec_scalef(*vel, sec));
-        if (limit >= 0 && (scale = CVec_len(*offset)) > limit)
-                *offset = CVec_scalef(CVec_divf(*offset, scale), limit);
-}
-
-/******************************************************************************\
  Sets the OpenGL clipping planes to the strictest clipping in each direction.
  This only works in 2D mode. OpenGL takes plane equations as arguments. Points
  that are visible satisfy the following inequality:

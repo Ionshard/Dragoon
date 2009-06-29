@@ -78,6 +78,11 @@ typedef struct {
         bool shown, hideLeft;
 } RMenu;
 
+/* r_distort.c */
+void R_cleanupDistort(void);
+void R_drawDistort(void);
+void R_initDistort(void);
+
 /* r_draw.c */
 void R_clip(CVec origin, CVec size);
 void R_clip_disable(void);
@@ -112,8 +117,8 @@ const char *R_screenshot(void);
 bool R_setVideoMode(void);
 
 extern CCount r_countFaces;
-extern CVec r_camera, r_cameraTo, r_cameraShake;
-extern float r_cameraSec;
+extern CVec r_camera, r_cameraTo;
+extern float r_cameraSec, r_cameraShake;
 extern int r_height, r_width, r_widthScaled, r_heightScaled, r_scale;
 extern bool r_clear, r_fullscreen;
 

@@ -85,25 +85,42 @@ void RTexture_upload(RTexture *pt)
                 /* Allocate power-of-two surface */
                 pt->pow2Width = C_nextPow2(realWidth);
                 pt->pow2Height = C_nextPow2(realHeight);
-                pow2Surface = R_allocSurface(pt->pow2Width, pt->pow2Height);
 
-                /* Blit onto the new surface */
-                R_blitSurface(pt->surface, pow2Surface,
-                              0, 0, pt->surface->w, pt->surface->h,
-                              0, 0, pt->pow2Width, pt->pow2Height);
+                /* We can just upload this surface if its already
+                   power-of-two */
+                if (pt->pow2Width == pt->surface->w &&
+                    pt->pow2Height == pt->surface->h)
+                        pow2Surface = pt->surface;
+
+                /* Otherwise we need to blit onto a new surface */
+                else {
+                        pow2Surface = R_allocSurface(pt->pow2Width,
+                                                     pt->pow2Height);
+                        R_blitSurface(pt->surface, pow2Surface,
+                                      0, 0, pt->surface->w, pt->surface->h,
+                                      0, 0, pt->pow2Width, pt->pow2Height);
+                }
         }
 
         /* Otherwise we use texture coords to isolate a piece and add a
            one pixel border around the texture */
         else {
-
-                /* Allocate power-of-two surface */
                 pt->pow2Width = C_nextPow2(realWidth + 1);
                 pt->pow2Height = C_nextPow2(realHeight + 1);
-                pow2Surface = R_allocSurface(pt->pow2Width, pt->pow2Height);
 
-                /* Blit onto the new surface */
-                R_scaleSurface(pt->surface, pow2Surface, scale, scale, 1, 1);
+                /* We can just upload this surface if its already
+                   power-of-two */
+                if (pt->pow2Width == pt->surface->w &&
+                    pt->pow2Height == pt->surface->h)
+                        pow2Surface = pt->surface;
+
+                /* Otherwise we need to blit onto a new surface */
+                else {
+                        pow2Surface = R_allocSurface(pt->pow2Width,
+                                                     pt->pow2Height);
+                        R_scaleSurface(pt->surface, pow2Surface,
+                                       scale, scale, 1, 1);
+                }
 
                 /* Save UV scale */
                 pt->scaleUV = CVec((float)realWidth / pt->pow2Width,
@@ -120,7 +137,8 @@ void RTexture_upload(RTexture *pt)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         /* Free the temporary surface */
-        R_freeSurface(pow2Surface);
+        if (pow2Surface != pt->surface)
+                R_freeSurface(pow2Surface);
 
         R_checkErrors();
 }
@@ -138,14 +156,21 @@ RTexture *RTexture_load(const char *filename)
                 return texture;
         texture->surface = R_loadSurface(filename);
         R_deseamSurface(texture->surface);
-
-        /* Load the texture into OpenGL */
-        if (texture->surface) {
-                glGenTextures(1, &texture->glName);
-                RTexture_upload(texture);
-                R_checkErrors();
-        }
         return texture;
+}
+
+/******************************************************************************\
+ Allocates a blank texture. The returned texture must be manually uploaded
+ and freed.
+\******************************************************************************/
+RTexture *RTexture_alloc(int w, int h)
+{
+        RTexture *dest;
+
+        C_new(&dest);
+        dest->named.cleanupFunc = (CCallback)RTexture_cleanup;
+        dest->surface = R_allocSurface(w, h);
+        return dest;
 }
 
 /******************************************************************************\
@@ -161,20 +186,11 @@ RTexture *RTexture_extract(const RTexture *src, int x, int y, int w, int h)
 
         /* Allocate a new surface and copy the portion of the old surface
            onto it */
-        C_new(&dest);
-        dest->named.cleanupFunc = (CCallback)RTexture_cleanup;
-        dest->surface = R_allocSurface(w, h);
+        dest = RTexture_alloc(w, h);
         dest->tile = TRUE;
         R_blitSurface(src->surface, dest->surface,
                       x, y, w, h, 0, 0, w, h);
         R_deseamSurface(dest->surface);
-
-        /* Load the texture into OpenGL */
-        if (dest->surface) {
-                glGenTextures(1, &dest->glName);
-                RTexture_upload(dest);
-                R_checkErrors();
-        }
         return dest;
 }
 
@@ -184,15 +200,24 @@ RTexture *RTexture_extract(const RTexture *src, int x, int y, int w, int h)
 \******************************************************************************/
 void RTexture_select(RTexture *texture, bool smooth, bool additive)
 {
+        bool upload;
+
         if (!texture) {
                 glDisable(GL_TEXTURE_2D);
                 return;
         }
 
+        /* Make sure the texture has been uploaded to OpenGL */
+        upload = FALSE;
+        if (!texture->glName) {
+                glGenTextures(1, &texture->glName);
+                upload = TRUE;
+        }
+
         /* Make sure that any texture we want to smooth has been upscaled */
-        if (smooth && texture && !texture->upScale) {
+        if (smooth && !texture->upScale) {
                 texture->upScale = TRUE;
-                RTexture_upload(texture);
+                upload = TRUE;
         }
 
         /* Select a blending function */
@@ -201,6 +226,11 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
         else
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        /* Upload texture to OpenGL */
+        if (upload)
+                RTexture_upload(texture);
+
+        /* Select texture */
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, texture->glName);
 

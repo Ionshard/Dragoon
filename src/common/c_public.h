@@ -192,13 +192,14 @@ bool C_fade_full(float *value, float from, float to, bool up, float rate);
 void C_limit_float(float *, float min, float max);
 void C_limit_int(int *, int min, int max);
 int C_nextPow2(int);
-#define C_sign(n) ((n) < 0 ? -1 : (n) > 0)
+void C_quadratic(float a, float b, float c, float *x1, float *x2);
 #define C_radToDeg(a) ((a) * 180.f / C_PI)
 #define C_rand() ((float)rand() / RAND_MAX)
 #define C_rand_c() (2 * C_rand() - 1)
 int C_randDet(int);
 int C_rollDice(int num, int sides);
-void C_quadratic(float a, float b, float c, float *x1, float *x2);
+CVec C_shake(float *amount, float decay, float sec);
+#define C_sign(n) ((n) < 0 ? -1 : (n) > 0)
 
 /* c_memory.c */
 #if CHECKED
