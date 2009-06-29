@@ -191,6 +191,15 @@ int main(int argc, char *argv[])
                 while (SDL_PollEvent(&ev)) {
                         if (ev.type == SDL_QUIT || keyEvent(&ev))
                                 return 0;
+
+                        /* Window resized */
+                        if (ev.type == SDL_VIDEORESIZE) {
+                                r_width = ev.resize.w;
+                                r_height = ev.resize.h;
+                                R_setVideoMode();
+                                R_initGl();
+                        }
+
                         G_dispatch(&ev);
                 }
 

@@ -107,6 +107,7 @@ void RMenu_update(RMenu *);
 RMenuOption *RMenuEntry_append(RMenuEntry *, const char *text, float value);
 RMenuEntry *RMenuEntry_new(const char *label, CCallback onActivate);
 RMenuOption *RMenuEntry_prepend(RMenuEntry *, const char *text, float value);
+bool RMenuEntry_selectable(const RMenuEntry *);
 
 /* r_mode.c */
 void R_begin(void);

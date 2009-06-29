@@ -202,6 +202,14 @@ RMenuEntry *RMenuEntry_new(const char *label, CCallback onActivate)
 }
 
 /******************************************************************************\
+ Returns TRUE if the menu entry has multiple options.
+\******************************************************************************/
+bool RMenuEntry_selectable(const RMenuEntry *entry)
+{
+        return entry && entry->options && entry->options->next;
+}
+
+/******************************************************************************\
  Change menu selection up or down.
 \******************************************************************************/
 void RMenu_scroll(RMenu *menu, bool up)
@@ -239,7 +247,7 @@ void RMenu_scroll(RMenu *menu, bool up)
 }
 
 /******************************************************************************\
- Activate the current menu item.
+ Activate the current menu item. Returns FALSE is the menu has no options
 \******************************************************************************/
 void RMenu_activate(RMenu *menu, bool next)
 {
@@ -248,14 +256,21 @@ void RMenu_activate(RMenu *menu, bool next)
         if (!menu || !(entry = menu->selected))
                 return;
 
+        /* Entry has no options */
+        if (!entry->options) {
+                if (entry->onActivate)
+                        entry->onActivate(entry);
+                return;
+        }
+
         /* Select next option */
-        if (entry->options && next) {
+        if (next) {
                 if (entry->selected->next) {
                         if (entry->selected->fade < 1)
                                 entry->selected->fade = 1;
                         entry->selected = entry->selected->next;
                 }
-        } else if (entry->options && !next) {
+        } else {
                 RMenuOption *option;
 
                 for (option = entry->options; option->next;
@@ -280,6 +295,8 @@ void RMenu_activate_last(RMenu *menu)
 {
         RMenuEntry *entry;
 
+        if (!menu)
+                return;
         for (entry = menu->entries; entry->next; entry = entry->next);
         entry->onActivate(entry);
 }

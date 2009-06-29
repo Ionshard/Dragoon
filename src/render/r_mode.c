@@ -64,7 +64,7 @@ bool R_setVideoMode(void)
 
         /* Create a new window */
         SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
-        flags = SDL_OPENGL | SDL_DOUBLEBUF | SDL_ANYFORMAT;
+        flags = SDL_OPENGL | SDL_DOUBLEBUF | SDL_ANYFORMAT | SDL_RESIZABLE;
         if (r_fullscreen)
                 flags |= SDL_FULLSCREEN;
         if (!(video = SDL_SetVideoMode(r_width, r_height, 0, flags))) {

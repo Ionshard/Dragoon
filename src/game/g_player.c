@@ -22,7 +22,7 @@
 #define AIR_MOVE 0.2
 
 /* Cannon parameters */
-#define CANNON_DELAY 300
+#define CANNON_DELAY 200
 
 /* Melee weapon parameters */
 #define SWORD_EXTEND 0.015

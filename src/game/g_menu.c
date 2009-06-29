@@ -307,8 +307,14 @@ bool G_dispatch_menu(GEvent event)
                                 RMenu_scroll(menuShown, TRUE);
                         else if (g_key == SDLK_RIGHT || g_key == SDLK_RETURN)
                                 RMenu_activate(menuShown, TRUE);
-                        else if (g_key == SDLK_LEFT)
-                                RMenu_activate_last(menuShown);
+                        else if (g_key == SDLK_LEFT) {
+                                if (RMenuEntry_selectable(menuShown->selected))
+                                        RMenu_activate(menuShown, FALSE);
+                                else if (menuShown == menus + MENU_MAIN)
+                                        G_hideMenu();
+                                else
+                                        RMenu_activate_last(menuShown);
+                        }
 
                         /* Hide menu via key */
                         else if (g_key == SDLK_ESCAPE ||
