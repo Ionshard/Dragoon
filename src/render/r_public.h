@@ -98,6 +98,7 @@ void R_popClip(void);
 
 /* RMenu.c */
 void RMenu_activate(RMenu *, bool next);
+void RMenu_activate_last(RMenu *);
 void RMenu_add(RMenu *, RMenuEntry *, float margin);
 void RMenu_cleanup(RMenu *);
 #define RMenu_init(m) C_zero(m)

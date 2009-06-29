@@ -308,7 +308,7 @@ bool G_dispatch_menu(GEvent event)
                         else if (g_key == SDLK_RIGHT || g_key == SDLK_RETURN)
                                 RMenu_activate(menuShown, TRUE);
                         else if (g_key == SDLK_LEFT)
-                                RMenu_activate(menuShown, FALSE);
+                                RMenu_activate_last(menuShown);
 
                         /* Hide menu via key */
                         else if (g_key == SDLK_ESCAPE ||

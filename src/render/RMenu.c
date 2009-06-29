@@ -273,3 +273,14 @@ void RMenu_activate(RMenu *menu, bool next)
                 entry->onActivate(entry);
 }
 
+/******************************************************************************\
+ Activate the last entry in the menu.
+\******************************************************************************/
+void RMenu_activate_last(RMenu *menu)
+{
+        RMenuEntry *entry;
+
+        for (entry = menu->entries; entry->next; entry = entry->next);
+        entry->onActivate(entry);
+}
+

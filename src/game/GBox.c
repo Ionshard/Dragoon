@@ -107,6 +107,8 @@ int GBox_eventFunc(GBox *box, int event, void *args)
 
                 /* Did this impact kill the box? */
                 if (boxClass->gibForce > 0) {
+                        float shake;
+
                         if (impactEvent->impulse >= boxClass->gibForce) {
                                 CVec vel;
                                 float prop;
@@ -121,8 +123,10 @@ int GBox_eventFunc(GBox *box, int event, void *args)
                         }
 
                         /* Not dead -- reel from the impact */
-                        box->shake += SHAKE_SCALE * impactEvent->impulse /
-                                                    boxClass->gibForce;
+                        shake = SHAKE_SCALE * impactEvent->impulse /
+                                              boxClass->gibForce;
+                        if (box->shake < shake)
+                                box->shake = shake;
                 }
 
                 /* Impact effect entity */
