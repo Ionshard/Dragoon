@@ -20,11 +20,11 @@ static CNamed *dataRoot;
 \******************************************************************************/
 static void RSpriteData_cleanup(RSpriteData *data)
 {
-        int i;
+        /*int i;
 
         RTexture_free(data->tiled);
         for (i = 0; i < 4; i++)
-                RTexture_free(data->edges[i]);
+                RTexture_free(data->edges[i]);*/
 }
 
 /******************************************************************************\

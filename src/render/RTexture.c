@@ -50,9 +50,18 @@ void R_resetTextures(void)
 {
         RTexture *pt;
 
-        for (pt = (RTexture *)textureRoot; pt; pt = (RTexture *)pt->named.next)
+        if (!textureRoot)
+                return;
+        for (pt = (RTexture *)textureRoot; pt; 
+             pt = (RTexture *)pt->named.next) {
                 pt->upScale = FALSE;
+                if (WINDOWS) {
+                        glDeleteTextures(1, &pt->glName);
+                        pt->glName = 0;
+                }
+        }
         C_debug("Reset texture cache");
+        R_checkErrors();
 }
 
 /******************************************************************************\
@@ -131,6 +140,7 @@ void RTexture_upload(RTexture *pt)
         glBindTexture(GL_TEXTURE_2D, pt->glName);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pow2Surface->w, pow2Surface->h,
                      0, GL_RGBA, GL_UNSIGNED_BYTE, pow2Surface->pixels);
+        pt->frame = c_frame;
 
         /* Repeat wrapping (not supported for NPOT textures) */
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -160,22 +170,21 @@ RTexture *RTexture_load(const char *filename)
 }
 
 /******************************************************************************\
- Allocates a blank texture. The returned texture must be manually uploaded
- and freed.
+ Allocates a blank texture.
 \******************************************************************************/
 RTexture *RTexture_alloc(int w, int h)
 {
-        RTexture *dest;
+        RTexture *texture;
 
-        C_new(&dest);
-        dest->named.cleanupFunc = (CCallback)RTexture_cleanup;
-        dest->surface = R_allocSurface(w, h);
-        return dest;
+        C_new(&texture);
+        texture = CNamed_alloc(&textureRoot, NULL, sizeof (RTexture),
+                               (CCallback)RTexture_cleanup, CNP_RETURN);
+        texture->surface = R_allocSurface(w, h);
+        return texture;
 }
 
 /******************************************************************************\
- Cuts a tilable chunk out of an already loaded texture. The returned texture
- must be manually freed.
+ Cuts a tilable chunk out of an already loaded texture.
 \******************************************************************************/
 RTexture *RTexture_extract(const RTexture *src, int x, int y, int w, int h)
 {
@@ -219,6 +228,10 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
                 texture->upScale = TRUE;
                 upload = TRUE;
         }
+        
+        /* Stale textures must be uploaded again */
+        if (texture->frame < r_initFrame)
+                upload = TRUE;
 
         /* Select a blending function */
         if (additive)
@@ -235,8 +248,8 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
         glBindTexture(GL_TEXTURE_2D, texture->glName);
 
         /* Scale filters */
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
                         smooth ? GL_LINEAR : GL_NEAREST);
 
         /* Non-power-of-two textures are pasted onto larger textures that

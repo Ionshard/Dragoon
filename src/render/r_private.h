@@ -31,7 +31,7 @@ typedef struct RTexture {
         CVec scaleUV;
         SDL_Surface *surface;
         GLuint glName;
-        int pow2Width, pow2Height;
+        int pow2Width, pow2Height, frame;
         bool upScale, tile;
 } RTexture;
 
@@ -64,7 +64,7 @@ void R_checkErrors_full(const char *func);
 #define R_checkErrors() ;
 #endif
 
-extern int r_scale;
+extern int r_scale, r_initFrame;
 extern bool r_cameraOn;
 
 /* r_surface.c */

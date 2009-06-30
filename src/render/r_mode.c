@@ -19,7 +19,8 @@
 #define SHAKE_DRAG 5
 
 /* Screen mode parameters */
-int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale;
+int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale,
+    r_initFrame;
 bool r_clear, r_fullscreen;
 
 /* Keep track of the number of faces rendered per frame */
@@ -79,9 +80,9 @@ bool R_setVideoMode(void)
         r_widthScaled = video->w * r_heightScaled / video->h;
         C_debug("Set mode %dx%d (%dx%d scaled), scale factor %d",
                 video->w, video->h, r_widthScaled, r_heightScaled, r_scale);
-
-        /* Reset textures because resolution has changed */
-        R_resetTextures();
+                
+        /* Update reset frame so we reinitialize textures as necessary */
+        r_initFrame = c_frame;
 
         R_checkErrors();
         return TRUE;

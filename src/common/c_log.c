@@ -14,12 +14,6 @@
 
 /* Bash color codes */
 #define BASH_COLOR(a, b) "\033[" #a ";" #b "m"
-#define BASH_WHITE "[1;37m"
-#define BASH_GRAY "[0;37m"
-#define BASH_YELLOW_BRIGHT "[1;33m"
-#define BASH_YELLOW_DARK "[0;33m"
-#define BASH_RED_BRIGHT "[1;31m"
-#define BASH_RED_DARK "[0;31m"
 
 /******************************************************************************\
  If [boolean] is FALSE then generates an error. The error message contains the
@@ -41,7 +35,7 @@ void C_log(CLogLevel level, const char *func, const char *fmt, ...)
         va_list va;
 
         /* Print color-coded function name */
-        if (CHECKED)
+        if (CHECKED && !WINDOWS)
                 switch (level) {
                 case CLL_ERROR:
                         fprintf(stderr, BASH_COLOR(1, 30) "%s "
@@ -56,13 +50,15 @@ void C_log(CLogLevel level, const char *func, const char *fmt, ...)
                                 BASH_COLOR(,), func);
                         break;
                 }
+        else if (WINDOWS)
+                fprintf(stderr, "%s: ", func);
         else
                 fprintf(stderr, "%s: ", PACKAGE);
 
         /* Output message */
         va_start(va, fmt);
         vfprintf(stderr, fmt, va);
-        if (CHECKED)
+        if (CHECKED && !WINDOWS)
                 fprintf(stderr, "\n" BASH_COLOR(,));
         else
                 fprintf(stderr, "\n");

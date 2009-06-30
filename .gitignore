@@ -2,7 +2,17 @@
 config.h
 custom.py
 dragoon
+dragoon.exe
+dragoon.exe.manifest
+dragoon.ilk
+dragoon.pdb
+windows/vc8/Debug
+windows/vc8/Release
+windows/vc8/dragoon.ncb
+windows/vc8/dragoon.suo
+windows/vc8/dragoon.vcproj.*.user
 *.o
+*.obj
 *.gch
 *.swp
 *.html

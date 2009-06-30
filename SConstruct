@@ -19,12 +19,18 @@ from colorizer import colorizer
 package = 'dragoon'
 version = '0.0.0'
 
+# Platform considerations
+windows = sys.platform == 'win32'
+darwin = sys.platform == 'darwin'
+
 # Builder for precompiled headers
 gch_builder = Builder(action = '$CC $CFLAGS $CCFLAGS $_CCCOMCOM ' +
                                '-x c-header -c $SOURCE -o $TARGET')
 
-# Convert a POSIX path to OS-indepentant (stub)
+# Convert a POSIX path to OS-independent
 def path(p):
+        if windows:
+                p = p.replace('/', '\\')
         return p
 
 # Create a default environment. Have to set environment variables after
@@ -54,6 +60,14 @@ def AddEnvOption(env, opts, opt_name, opt_desc, env_name = None, value = None):
 config_file = ARGUMENTS.get('config', 'custom.py')
 opts = Options(config_file)
 
+# First load the mingw variable because it affects default variables
+opts.Add(BoolOption('mingw', 'Set to True if compiling with MinGW', False))
+opts.Update(default_env)
+mingw = default_env.get('mingw')
+if mingw:
+        default_env = Environment(tools = ['mingw'], ENV = os.environ,
+                                  BUILDERS = {'GCH' : gch_builder})
+
 # Define and load the options
 AddEnvOption(default_env, opts, 'CC', 'Compiler to use')
 AddEnvOption(default_env, opts, 'CFLAGS', 'Compiler flags')
@@ -70,11 +84,18 @@ opts.Update(default_env)
 opts.Save(config_file, default_env)
 
 # Convert output spam to tidy colored lines
-if default_env['color']:
+if not windows and default_env['color']:
         col = colorizer()
         col.colorize(default_env)
         col.colorizeBuilder(default_env, 'GCH', 'Building pre-compiled header',
                         True, col.cGreen)
+
+# Windows compiler and linker need some extra flags
+if windows:
+        if default_env['CC'] == 'cl':
+                default_env.PrependUnique(CFLAGS = '/MD')
+        if default_env['LINK'] == 'link':
+                default_env.PrependUnique(LINKFLAGS = '/SUBSYSTEM:CONSOLE')
 
 # Dump Environment object to debug SCons
 if default_env['dump_env']:
@@ -106,11 +127,33 @@ Help(opts.GenerateHelpText(default_env))
 ################################################################################
 game_src = (['src/main.c'] + glob.glob('src/*/*.c'))
 game_env = default_env.Clone()
-game_env.Append(CPPPATH = '.')
-game_env.Append(LIBS = ['m', 'SDL_ttf', 'GL', 'GLU', 'png'])
-game_env.ParseConfig('sdl-config --cflags --libs')
+game_objlibs = []
+if windows:
+        game_src.remove(path('src/common/c_os_posix.c'))
+        game_env.Append(CPPPATH = 'windows/include')
+        game_env.Append(LIBPATH = 'windows/lib')
+        game_env.Append(LIBS = ['SDLmain', 'OpenGL32', 'GlU32',
+                                'user32', 'shell32', 'Ws2_32'])
+        if mingw:
+                game_env.ParseConfig('sh sdl-config --prefix=windows' +
+                                                  ' --cflags --libs')
+                game_objlibs = [path('windows/lib/zdll.lib'),
+                                path('windows/lib/libpng.lib'),
+                                path('windows/lib/SDL.lib'),
+                                path('windows/lib/SDL_ttf.lib')]
+        else:
+                game_env.Append(CPPPATH = ';windows/include/SDL')
+                game_env.Append(LIBS = ['zdll', 'libpng', 'SDL', 'SDLmain', 
+                                        'SDL_ttf'])
+else:
+        plutocracy_src.remove(path('src/common/c_os_windows.c'))
+        game_env.Append(CPPPATH = '.')
+        game_env.Append(LIBS = ['m', 'SDL_ttf', 'GL', 'GLU', 'png'])
+        game_env.ParseConfig('sdl-config --cflags --libs')
 game_obj = game_env.Object(game_src)
-game = game_env.Program(package, game_obj)
+game = game_env.Program(package, game_obj + game_objlibs)
+if windows:
+        game_env.Clean(game, 'game.exe.manifest')
 Default(game)
 
 # Build the precompiled headers as dependencies of the main program. We have
@@ -123,25 +166,32 @@ def GamePCH(header, deps = []):
         game_env.Depends(pch, deps)
         game_env.Depends(game_obj, pch)
         game_pch += pch
-if game_env['pch']:
+if (not windows or mingw) and game_env['pch']:
         common_deps = glob.glob('src/common/*.h')
         GamePCH('src/common/c_public.h', common_deps)
 
-# Generate a config.h with definitions
-def WriteConfigH(target, source, env):
-        config = open('config.h', 'w')
-        config.write('/* Package parameters */\n' +
-                     '#define PACKAGE "' + package + '"\n' +
-                     '#define PACKAGE_STRING "' + package.title() +
-                     ' ' + version + '"\n' +
-                     '#define PKGDATADIR "' + install_data + '"\n' +
-                     '\n/* Compilation parameters */\n' +
-                     '#define CHECKED %d\n' % (game_env['checked']));
-        config.close()
+# Windows has a prebuilt config
+if windows:
+        game_config = 'windows/include/config.h'
 
-game_config = game_env.Command('config.h', '', WriteConfigH)
-game_env.Depends(game_config, 'SConstruct')
-game_env.Depends(game_obj + game_pch, game_config)
+# Generate a config.h with definitions
+else:
+        def WriteConfigH(target, source, env):
+                config = open('config.h', 'w')
+                config.write('/* Package parameters */\n' +
+                             '#define PACKAGE "' + package + '"\n' +
+                             '#define PACKAGE_STRING "' + package.title() +
+                             ' ' + version + '"\n' +
+                             '#define PKGDATADIR "' + install_data + '"\n' +
+                             '\n/* Compilation parameters */\n' +
+                             '#define CHECKED %d\n' % (game_env['checked']) +
+                             '#define WINDOWS 0\n');
+                config.close()
+        
+        game_config = game_env.Command('config.h', '', WriteConfigH)
+        game_env.Depends(game_config, 'SConstruct')
+        
+game_env.Depends(game_obj + game_pch, game_config)        
 game_env.Depends(game_config, config_file)
 
 ################################################################################

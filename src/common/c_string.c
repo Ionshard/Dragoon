@@ -236,3 +236,119 @@ const char *C_keyName(SDLKey key)
         }
 }
 
+/******************************************************************************\
+ Returns the number of bytes in a single UTF-8 character:
+ http://www.cl.cam.ac.uk/%7Emgk25/unicode.html#utf-8
+\******************************************************************************/
+int C_utf8Size(unsigned char first_byte)
+{
+        /* U-00000000 – U-0000007F (ASCII) */
+        if (first_byte < 192)
+                return 1;
+
+        /* U-00000080 – U-000007FF */
+        else if (first_byte < 224)
+                return 2;
+
+        /* U-00000800 – U-0000FFFF */
+        else if (first_byte < 240)
+                return 3;
+
+        /* U-00010000 – U-001FFFFF */
+        else if (first_byte < 248)
+                return 4;
+
+        /* U-00200000 – U-03FFFFFF */
+        else if (first_byte < 252)
+                return 5;
+
+        /* U-04000000 – U-7FFFFFFF */
+        return 6;
+}
+
+/******************************************************************************\
+ One UTF-8 character from [src] will be copied to [dest]. The index of the
+ current position in [dest], [dest_i] and the index in [src], [src_i], will
+ be advanced accordingly. [dest] will not be allowed to overrun [dest_sz]
+ bytes. Returns the size of the UTF-8 character or 0 if there is not enough
+ room or if [src] starts with NUL.
+\******************************************************************************/
+int C_utf8Append(char *dest, int *dest_i, int dest_sz, const char *src)
+{
+        int len, char_len;
+
+        if (!*src)
+                return 0;
+        char_len = C_utf8Size(*src);
+        if (*dest_i + char_len > dest_sz)
+                return 0;
+        for (len = char_len; *src && len > 0; len--)
+                dest[(*dest_i)++] = *src++;
+        return char_len;
+}
+
+/******************************************************************************\
+ Convert a Unicode token to a UTF-8 character sequence. The length of the
+ token in bytes is output to [plen], which can be NULL.
+\******************************************************************************/
+char *C_utf8Encode(wchar_t unicode, int *plen)
+{
+        static char buf[7];
+        int len;
+
+        /* ASCII is an exception */
+        if (unicode <= 0x7f) {
+                buf[0] = (char)unicode;
+                buf[1] = NUL;
+                if (plen)
+                        *plen = 1;
+                return buf;
+        }
+
+        /* Size of the sequence depends on the range */
+        if (unicode <= 0xff)
+                len = 2;
+        else if (unicode <= 0xffff)
+                len = 3;
+        else if (unicode <= 0x1fffff)
+                len = 4;
+        else if (unicode <= 0x3FFFFFF)
+                len = 5;
+        else if (unicode <= 0x7FFFFFF)
+                len = 6;
+        else {
+                C_warning("Invalid Unicode character 0x%x", unicode);
+                buf[0] = NUL;
+                if (plen)
+                        *plen = 0;
+                return buf;
+        }
+        if (plen)
+                *plen = len;
+
+        /* The first byte is 0b*110x* and the rest are 0b10xxxxxx */
+        buf[0] = 0xfc << (6 - len);
+        while (--len > 0) {
+                buf[len] = 0x80 + (unicode & 0x3f);
+                unicode >>= 6;
+        }
+        buf[0] += unicode;
+        return buf;
+}
+
+char *C_utf8Encode_str(wchar_t *wide, int *plen)
+{
+        static char buf[C_BUF_SIZE];
+        int len = 0, size;
+        
+        while (*wide) {
+                strncpy(buf + len, C_utf8Encode(*wide, &size), sizeof (buf) - len);
+                if ((len += size) >= sizeof (buf))
+                        len = sizeof (buf) - 1;
+                wide++;
+        }
+        buf[len] = 0;
+        if (plen)
+                *plen = len;
+        return buf;
+}

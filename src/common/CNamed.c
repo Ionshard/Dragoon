@@ -41,7 +41,9 @@ void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
         while (cur) {
                 int cmp;
 
-                if (!(cmp = strcmp(cur->name, name))) {
+                if (!cur->name)
+                        break;
+                if (name && !(cmp = strcmp(cur->name, name))) {
                         if (policy == CNP_NULL)
                                 return NULL;
                         else if (policy == CNP_OVERWRITE) {
@@ -55,7 +57,7 @@ void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
                         }
                         C_error("Invalid policy %d", policy);
                 }
-                if (cmp > 0)
+                if (name && cmp > 0)
                         break;
                 last = cur;
                 cur = cur->next;

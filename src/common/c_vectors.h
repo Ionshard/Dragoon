@@ -379,7 +379,9 @@ static inline CColor CColor_bytes(unsigned char r, unsigned char g,
 \******************************************************************************/
 static inline CColor CColor_32(unsigned int v)
 {
-        return CColor_rgba((v & 0xff0000) >> 16, (v & 0xff00) >> 8, v & 0xff,
-                           (v & 0xff000000) >> 24);
+        return CColor_rgba((float)((v & 0xff0000) >> 16), 
+                           (float)((v & 0xff00) >> 8), 
+                           (float)(v & 0xff),
+                           (float)((v & 0xff000000) >> 24));
 }
 

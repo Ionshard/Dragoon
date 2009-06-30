@@ -21,7 +21,9 @@
 #include <math.h>
 #include <ctype.h>
 #include <string.h>
+#ifdef HAVE_STRINGS_H
 #include <strings.h>
+#endif
 #include <time.h>
 #include <errno.h>
 #include <float.h>
@@ -236,7 +238,7 @@ void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
                         int size, CCallback cleanupFunc, CNamedPolicy);
 void *CNamed_get(CNamed *root, const char *name);
 
-/* c_os_posix.c */
+/* c_os_posix.c, c_os_windows.c */
 const char *C_appDir(void);
 int C_mkdir(const char *path);
 const char *C_userDir(void);
@@ -255,6 +257,10 @@ const char *C_keyName(SDLKey);
 #define C_strncpy(d, s, l) C_strncpy_full(__FILE__, d, s, l)
 #define C_strncpy_buf(buf, s) C_strncpy(buf, s, sizeof (buf))
 int C_strncpy_full(const char *func, char *dest, const char *src, int len);
+int C_utf8Append(char *dest, int *dest_i, int dest_sz, const char *src);
+char *C_utf8Encode(wchar_t unicode, int *plen);
+char *C_utf8Encode_str(wchar_t *wide, int *plen);
+int C_utf8Size(unsigned char first_byte);
 char *C_va(const char *fmt, ...);
 char *C_van(int *output_len, const char *fmt, ...);
 char *C_vanv(int *output_len, const char *fmt, va_list);
