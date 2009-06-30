@@ -242,27 +242,27 @@ const char *C_keyName(SDLKey key)
 \******************************************************************************/
 int C_utf8Size(unsigned char first_byte)
 {
-        /* U-00000000 – U-0000007F (ASCII) */
+        /* U-00000000 - U-0000007F (ASCII) */
         if (first_byte < 192)
                 return 1;
 
-        /* U-00000080 – U-000007FF */
+        /* U-00000080 - U-000007FF */
         else if (first_byte < 224)
                 return 2;
 
-        /* U-00000800 – U-0000FFFF */
+        /* U-00000800 - U-0000FFFF */
         else if (first_byte < 240)
                 return 3;
 
-        /* U-00010000 – U-001FFFFF */
+        /* U-00010000 - U-001FFFFF */
         else if (first_byte < 248)
                 return 4;
 
-        /* U-00200000 – U-03FFFFFF */
+        /* U-00200000 - U-03FFFFFF */
         else if (first_byte < 252)
                 return 5;
 
-        /* U-04000000 – U-7FFFFFFF */
+        /* U-04000000 - U-7FFFFFFF */
         return 6;
 }
 
@@ -340,7 +340,7 @@ char *C_utf8Encode_str(wchar_t *wide, int *plen)
 {
         static char buf[C_BUF_SIZE];
         int len = 0, size;
-        
+
         while (*wide) {
                 strncpy(buf + len, C_utf8Encode(*wide, &size), sizeof (buf) - len);
                 if ((len += size) >= sizeof (buf))

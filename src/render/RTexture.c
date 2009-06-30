@@ -40,7 +40,10 @@ void RTexture_free(RTexture *texture)
 \******************************************************************************/
 void R_cleanupTextures(void)
 {
-        CNamed_freeAll(&textureRoot);
+        int count;
+
+        count = CNamed_freeAll(&textureRoot);
+        C_debug("Free'd %d textures", count);
 }
 
 /******************************************************************************\
@@ -49,18 +52,20 @@ void R_cleanupTextures(void)
 void R_resetTextures(void)
 {
         RTexture *pt;
+        int count = 0;
 
         if (!textureRoot)
                 return;
-        for (pt = (RTexture *)textureRoot; pt; 
+        for (pt = (RTexture *)textureRoot; pt;
              pt = (RTexture *)pt->named.next) {
                 pt->upScale = FALSE;
                 if (WINDOWS) {
                         glDeleteTextures(1, &pt->glName);
                         pt->glName = 0;
                 }
+                count++;
         }
-        C_debug("Reset texture cache");
+        C_debug("Reset %d textures", count);
         R_checkErrors();
 }
 
@@ -176,9 +181,8 @@ RTexture *RTexture_alloc(int w, int h)
 {
         RTexture *texture;
 
-        C_new(&texture);
         texture = CNamed_alloc(&textureRoot, NULL, sizeof (RTexture),
-                               (CCallback)RTexture_cleanup, CNP_RETURN);
+                               (CCallback)RTexture_cleanup, CNP_NULL);
         texture->surface = R_allocSurface(w, h);
         return texture;
 }
@@ -228,7 +232,7 @@ void RTexture_select(RTexture *texture, bool smooth, bool additive)
                 texture->upScale = TRUE;
                 upload = TRUE;
         }
-        
+
         /* Stale textures must be uploaded again */
         if (texture->frame < r_initFrame)
                 upload = TRUE;

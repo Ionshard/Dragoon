@@ -232,7 +232,7 @@ void *C_recalloc_full(const char *func, void *ptr, size_t size);
 
 /* CNamed.c */
 void CNamed_free(CNamed *);
-void CNamed_freeAll(CNamed **root);
+int CNamed_freeAll(CNamed **root);
 #define CNamed_alloc(r, n, s, c, o) CNamed_alloc_full(__func__, r, n, s, c, o)
 void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
                         int size, CCallback cleanupFunc, CNamedPolicy);

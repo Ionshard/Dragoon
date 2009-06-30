@@ -176,7 +176,9 @@ void R_freeSurface(SDL_Surface *surface)
                 return;
 
         /* Keep track of free'd memory */
-        r_videoMem -= surface->w * surface->h * surface->format->BytesPerPixel;
+        if (surface->format)
+                r_videoMem -= surface->w * surface->h *
+                              surface->format->BytesPerPixel;
 
         SDL_FreeSurface(surface);
 }

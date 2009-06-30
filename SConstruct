@@ -143,10 +143,10 @@ if windows:
                                 path('windows/lib/SDL_ttf.lib')]
         else:
                 game_env.Append(CPPPATH = ';windows/include/SDL')
-                game_env.Append(LIBS = ['zdll', 'libpng', 'SDL', 'SDLmain', 
+                game_env.Append(LIBS = ['zdll', 'libpng', 'SDL', 'SDLmain',
                                         'SDL_ttf'])
 else:
-        plutocracy_src.remove(path('src/common/c_os_windows.c'))
+        game_src.remove(path('src/common/c_os_windows.c'))
         game_env.Append(CPPPATH = '.')
         game_env.Append(LIBS = ['m', 'SDL_ttf', 'GL', 'GLU', 'png'])
         game_env.ParseConfig('sdl-config --cflags --libs')
@@ -187,11 +187,11 @@ else:
                              '#define CHECKED %d\n' % (game_env['checked']) +
                              '#define WINDOWS 0\n');
                 config.close()
-        
+
         game_config = game_env.Command('config.h', '', WriteConfigH)
         game_env.Depends(game_config, 'SConstruct')
-        
-game_env.Depends(game_obj + game_pch, game_config)        
+
+game_env.Depends(game_obj + game_pch, game_config)
 game_env.Depends(game_config, config_file)
 
 ################################################################################

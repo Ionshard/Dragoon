@@ -63,6 +63,9 @@ bool R_setVideoMode(void)
         if (r_height < R_HEIGHT)
                 r_height = R_HEIGHT;
 
+        /* Reset textures for resolution change */
+        R_resetTextures();
+
         /* Create a new window */
         SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
         flags = SDL_OPENGL | SDL_DOUBLEBUF | SDL_ANYFORMAT | SDL_RESIZABLE;
@@ -80,7 +83,7 @@ bool R_setVideoMode(void)
         r_widthScaled = video->w * r_heightScaled / video->h;
         C_debug("Set mode %dx%d (%dx%d scaled), scale factor %d",
                 video->w, video->h, r_widthScaled, r_heightScaled, r_scale);
-                
+
         /* Update reset frame so we reinitialize textures as necessary */
         r_initFrame = c_frame;
 

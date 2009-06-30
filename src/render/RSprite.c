@@ -16,18 +16,6 @@
 static CNamed *dataRoot;
 
 /******************************************************************************\
- Cleanup sprite data.
-\******************************************************************************/
-static void RSpriteData_cleanup(RSpriteData *data)
-{
-        /*int i;
-
-        RTexture_free(data->tiled);
-        for (i = 0; i < 4; i++)
-                RTexture_free(data->edges[i]);*/
-}
-
-/******************************************************************************\
  Cleanup sprite database.
 \******************************************************************************/
 void R_cleanupSprites(void)
@@ -72,8 +60,7 @@ void R_parseSpriteSection(FILE *file, const char *name)
         bool haveBox = FALSE, haveCenter = FALSE;
 
         /* Allocate a new data structure */
-        data = CNamed_alloc(&dataRoot, name, sizeof (RSpriteData),
-                            (CCallback)RSpriteData_cleanup, FALSE);
+        data = CNamed_alloc(&dataRoot, name, sizeof (RSpriteData), NULL, FALSE);
         if (!data) {
                 C_warning("Sprite '%s' already defined", name);
                 C_closeBrace(file);

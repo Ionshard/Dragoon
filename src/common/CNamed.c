@@ -41,7 +41,7 @@ void *CNamed_alloc_full(const char *func, CNamed **root, const char *name,
         while (cur) {
                 int cmp;
 
-                if (!cur->name)
+                if (!cur->name[0])
                         break;
                 if (name && !(cmp = strcmp(cur->name, name))) {
                         if (policy == CNP_NULL)
@@ -91,19 +91,21 @@ void *CNamed_get(CNamed *cur, const char *name)
 }
 
 /******************************************************************************\
- Free the objects in a named linked list.
+ Free the objects in a named linked list. Returns the number of objects freed.
 \******************************************************************************/
-void CNamed_freeAll(CNamed **root)
+int CNamed_freeAll(CNamed **root)
 {
         CNamed *next;
+        int count;
 
         if (!*root)
-                return;
-        while (*root) {
+                return 0;
+        for (count = 0; *root; count++) {
                 next = (*root)->next;
                 CNamed_free(*root);
                 *root = next;
         }
         *root = NULL;
+        return count;
 }
 
