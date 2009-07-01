@@ -27,6 +27,7 @@
 #include <time.h>
 #include <errno.h>
 #include <float.h>
+#include <limits.h>
 
 /* OpenGL */
 #include <GL/gl.h>

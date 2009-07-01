@@ -118,7 +118,7 @@ static void populateModes(RMenuEntry *entry)
 
         /* Add the video modes that work for us */
         best = NULL;
-        best_diff = 100000;
+        best_diff = INT_MAX;
         for (i = 0; videoModes[i]; i++) {
                 RMenuOption *option;
                 int w, h;
@@ -255,6 +255,9 @@ void G_hideMenu(void)
         if (menuShown)
                 menuShown->shown = FALSE;
         menuShown = NULL;
+
+        /* Prevent sword from hanging out */
+        G_resetHolds();
 
         /* Don't allow mouse outside of the game window */
         if (!CHECKED)

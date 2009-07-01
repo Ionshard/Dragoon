@@ -127,6 +127,7 @@ void GMissile_parseClass(FILE *, const char *className);
 bool G_dispatch_player(GEvent);
 void G_drawHud(void);
 void G_spawnPlayer(CVec origin);
+void G_resetHolds(void);
 void G_updatePlayer(void);
 
 extern PEntity g_player;
