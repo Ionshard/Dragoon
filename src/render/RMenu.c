@@ -263,6 +263,10 @@ void RMenu_activate(RMenu *menu, bool next)
                 return;
         }
 
+        /* Make sure there is a selected entry */
+        if (!entry->selected)
+                entry->selected = entry->options;
+
         /* Select next option */
         if (next) {
                 if (entry->selected->next) {
