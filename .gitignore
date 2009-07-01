@@ -1,5 +1,6 @@
 .sconsign.dblite
 config.h
+!windows/include/config.h
 custom.py
 dragoon
 dragoon.exe
