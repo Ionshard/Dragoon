@@ -250,6 +250,7 @@ char *C_buf(void);
 char *C_escape(const char *);
 #define C_isComment(c) ((c) == '#')
 #define C_isDigit(c) ((c) >= '0' && (c) <= '9')
+bool C_isInteger(const char *);
 #define C_isPrint(c) ((c) > 0 && (c) < 0x7f)
 #define C_isSpace(c) ((c) > 0 && (c) <= ' ')
 const char *C_keyName(SDLKey);

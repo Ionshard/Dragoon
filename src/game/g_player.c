@@ -29,6 +29,8 @@
 #define SWORD_REACH 15
 #define SWORD_FORCE_PER_V 3
 #define SWORD_BOOST (50 * SWORD_FORCE_PER_V)
+#define SWORD_BOOST_TIME 150
+#define SWORD_BOOST_FLASH 1000
 #define SWORD_FORCE_PLAYER 0.5
 #define SWORD_IMPACT_SLOW 500
 #define SWORD_CLIPPING 0
@@ -54,7 +56,7 @@ CVec g_aim, g_muzzle;
 static GEntityClass playerClass;
 static RSprite playerHead, playerBody, playerWeapon, playerGlow;
 static float meleeProgress, clip_left, clip_right, clip_top, clip_bottom;
-static int meleeDelay, fireDelay, jumpDelay;
+static int meleeTime, meleeDelay, fireDelay, jumpDelay;
 static bool meleeHeld;
 
 /******************************************************************************\
@@ -188,6 +190,7 @@ static void startMelee(void)
                 return;
         RSprite_play(&playerWeapon, "sword");
         meleeProgress = 0;
+        meleeTime = p_timeMsec;
 }
 
 /******************************************************************************\
@@ -196,6 +199,7 @@ static void startMelee(void)
 static void stopMelee(void)
 {
         meleeProgress = -1;
+        meleeTime = 0;
         RSprite_play(&playerWeapon, "repelCannon");
         disableClip();
 }
@@ -334,12 +338,16 @@ static void checkWeapon(void)
         }
 
         /* Weapon impact */
-        vel = CVec_len(g_player.velocity);
-        force = vel * SWORD_FORCE_PER_V;
-        if (meleeProgress < 1)
+        force = (vel = CVec_len(g_player.velocity)) * SWORD_FORCE_PER_V;
+        if (p_timeMsec - meleeTime < SWORD_BOOST_TIME) {
                 force += SWORD_BOOST;
+                if (force > G_VEL_MIN)
+                        r_screenFlash = CColor(1, 1, 1, (force - G_VEL_MIN) /
+                                                        SWORD_BOOST_FLASH);
+        }
         if (force < G_VEL_NONE)
                 return;
+        C_debug("Impact force %d", (int)force);
         PEntity_impact_impulse(&g_player, trace.other, dir,
                                force * SWORD_FORCE_PLAYER, force);
         PEntity_slowImpulse(&g_player, SWORD_IMPACT_SLOW * p_frameSec);

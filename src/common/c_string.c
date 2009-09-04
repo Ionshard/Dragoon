@@ -342,7 +342,8 @@ char *C_utf8Encode_str(wchar_t *wide, int *plen)
         int len = 0, size;
 
         while (*wide) {
-                strncpy(buf + len, C_utf8Encode(*wide, &size), sizeof (buf) - len);
+                strncpy(buf + len, C_utf8Encode(*wide, &size),
+                                                sizeof (buf) - len);
                 if ((len += size) >= sizeof (buf))
                         len = sizeof (buf) - 1;
                 wide++;
@@ -352,3 +353,14 @@ char *C_utf8Encode_str(wchar_t *wide, int *plen)
                 *plen = len;
         return buf;
 }
+
+/******************************************************************************\
+ Checks if a string contains only digits.
+\******************************************************************************/
+bool C_isInteger(const char *str) {
+        for (; *str; str++)
+                if (!C_isDigit(*str))
+                        return FALSE;
+        return TRUE;
+}
+

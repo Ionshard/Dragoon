@@ -18,6 +18,10 @@
 /* Camera shake params */
 #define SHAKE_DRAG 5
 
+/* Screen flash params */
+#define FLASH_FADE 3
+#define FLASH_MIN 0.10
+
 /* Screen mode parameters */
 int r_width = 1024, r_height = 768, r_widthScaled, r_heightScaled, r_scale,
     r_initFrame;
@@ -30,6 +34,9 @@ CCount r_countFaces, r_countLines;
 CVec r_camera, r_cameraTo;
 float r_cameraSec, r_cameraShake;
 bool r_cameraOn;
+
+/* Screen flash */
+CColor r_screenFlash;
 
 /* Screenshots */
 static char screenshot[256];
@@ -197,6 +204,17 @@ void R_begin(void)
 \******************************************************************************/
 void R_end(void)
 {
+        /* Render screen flash */
+        if (r_screenFlash.a > 0) {
+                if (r_screenFlash.a > 1)
+                        r_screenFlash.a = 1;
+                R_drawRect(CVec(0, 0), 0, CVec(r_widthScaled, r_heightScaled),
+                           r_screenFlash, CColor(0, 0, 0, 0));
+                r_screenFlash.a *= 1 - FLASH_FADE * c_frameSec;
+                if (r_screenFlash.a < FLASH_MIN)
+                        r_screenFlash.a = 0;
+        }
+
         /* Before flipping the buffer, save any pending screenshots */
         if (screenshot[0]) {
                 SDL_Surface *surf;

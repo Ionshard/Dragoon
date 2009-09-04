@@ -109,6 +109,9 @@ extern CVec g_control, g_mouse;
 extern int g_key, g_button;
 extern bool g_shift, g_alt, g_ctrl;
 
+/* GJumper.c */
+void GJumper_parseClass(FILE *, const char *className);
+
 /* g_map.c */
 extern CVec g_playerSpawn;
 

@@ -53,6 +53,47 @@ static void parseTileSection(FILE *file, RSpriteData *data)
         C_closeBrace(file);
 }
 
+static void parseNextSection_frame(FILE *file, RSpriteData *data,
+                                   const char *token) {
+        if (data->nextNames_len >= R_NEXT_NAMES) {
+                C_warning("Random next frame limit exceeded");
+                return;
+        }
+        C_strncpy_buf(data->nextNames[(int)data->nextNames_len++], token);
+}
+
+static void parseNextSection(FILE *file, RSpriteData *data)
+{
+        const char *token;
+
+        /* Read delay or skip it and assume zero */
+        if (C_openBrace(file))
+                data->nextMsec = 0;
+        else {
+                token = C_token(file);
+
+                /* One next frame with zero delay */
+                if (!C_isInteger(token)) {
+                        parseNextSection_frame(file, data, token);
+                        return;
+                }
+
+                /* Read delay */
+                data->nextMsec = atoi(token);
+
+                /* One next frame with non-zero delay */
+                if (!C_openBrace(file)) {
+                        parseNextSection_frame(file, data, C_token(file));
+                        return;
+                }
+        }
+
+        /* Read frame names */
+        for (token = C_token(file); token[0]; token = C_token(file))
+                parseNextSection_frame(file, data, token);
+        C_closeBrace(file);
+}
+
 void R_parseSpriteSection(FILE *file, const char *name)
 {
         RSpriteData *data;
@@ -119,22 +160,8 @@ void R_parseSpriteSection(FILE *file, const char *name)
                 }
 
                 /* Next animation frame */
-                else if (!strcasecmp(token, "next") && C_openBrace(file)) {
-                        for (;;) {
-                                token = C_token(file);
-                                if (C_isDigit(token[0]) || !token[0])
-                                        break;
-                                if (data->nextNames_len == R_NEXT_NAMES)
-                                        C_warning("Random frame limit reached");
-                                if (data->nextNames_len >= R_NEXT_NAMES)
-                                        continue;
-                                C_strncpy_buf(data->nextNames
-                                              [(int)data->nextNames_len++],
-                                              token);
-                        }
-                        data->nextMsec = atoi(token);
-                        C_closeBrace(file);
-                }
+                else if (!strcasecmp(token, "next"))
+                        parseNextSection(file, data);
 
                 /* Scale factor */
                 else if (!strcasecmp(token, "scale")) {
@@ -204,6 +231,24 @@ void R_parseSpriteSection(FILE *file, const char *name)
                                                data->boxOrigin.y,
                                                data->boxSize.x,
                                                data->boxSize.y);
+}
+
+/******************************************************************************\
+ Parse an inline sprite reference or definition.
+\******************************************************************************/
+void R_parseInlineSprite_full(FILE *file, const char *defaultName,
+                              char *buf, int buf_size)
+{
+        /* Inline sprite definition */
+        if (C_openBrace(file)) {
+                R_parseSpriteSection(file, defaultName);
+                C_strncpy(buf, defaultName, buf_size);
+                C_closeBrace(file);
+                return;
+        }
+
+        /* Sprite name */
+        C_strncpy(buf, C_token(file), buf_size);
 }
 
 /******************************************************************************\

@@ -91,9 +91,19 @@ void C_closeBrace(FILE *file)
 \******************************************************************************/
 const char *C_token(FILE *file)
 {
+        static FILE *lastFile;
+        static int lastCount;
         int ch, pos;
         char *buffer;
         bool section;
+
+        /* Check for infinite loops on token reads */
+        if (CHECKED) {
+                if (lastFile != file)
+                        lastFile = file;
+                if (++lastCount > 1000000)
+                        C_error("Infinite loop");
+        }
 
         /* Don't read past the end of a section */
         if ((ch = C_skipSpace(file)) == '}')

@@ -118,6 +118,7 @@ void R_initGl(void);
 const char *R_screenshot(void);
 bool R_setVideoMode(void);
 
+extern CColor r_screenFlash;
 extern CCount r_countFaces;
 extern CVec r_camera, r_cameraTo;
 extern float r_cameraSec, r_cameraShake;
@@ -138,6 +139,10 @@ CVec RSprite_getCenter(const RSprite *);
 void RSprite_lookAt(RSprite *, CVec origin);
 bool RSprite_play(RSprite *, const char *name);
 void R_parseSpriteSection(FILE *, const char *name);
+#define R_parseInlineSprite(f, n, b) \
+        R_parseInlineSprite_full(f, n, b, sizeof (b))
+void R_parseInlineSprite_full(FILE *, const char *defaultName,
+                              char *buf, int buf_size);
 CVec R_spriteSize(const char *name);
 
 /* RText.c */

@@ -96,8 +96,9 @@ static int GFountain_eventFunc(GFountain *fountain, int event, void *args)
                 C_new(&particle);
                 fountainClass = fountain->entity.entityClass;
                 C_assert(fountainClass);
-                RSprite_init(&particle->sprite,
-                             fountainClass->entity.spriteName);
+                RSprite_init_time(&particle->sprite,
+                                  fountainClass->entity.spriteName,
+                                  &p_timeMsec);
                 particle->sprite.z = fountainClass->entity.z;
                 particle->entity.eventFunc = (PEventFunc)GParticle_eventFunc;
                 particle->entity.entityClass = fountain->entity.entityClass;
@@ -138,7 +139,8 @@ GFountain *GFountain_spawn(GFountainClass *fountainClass)
         GFountain *fountain;
 
         C_new(&fountain);
-        RSprite_init(&fountain->sprite, fountainClass->entity.spriteName);
+        RSprite_init_time(&fountain->sprite, fountainClass->entity.spriteName,
+                          &p_timeMsec);
         fountain->sprite.z = fountainClass->entity.z;
         fountain->entity.eventFunc = (PEventFunc)GFountain_eventFunc;
         fountain->intervalNext = p_timeMsec + fountainClass->interval +

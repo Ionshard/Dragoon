@@ -40,6 +40,10 @@ void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod)
         verts[3].co = CVec(verts[2].co.x, verts[0].co.y);
         verts[3].z = verts[2].z = verts[1].z = verts[0].z = z;
 
+        /* No need for depth testing if closest possible */
+        if (z <= 0)
+                glDisable(GL_DEPTH_TEST);
+
         /* Additive blending */
         if (add.a >= 0.f) {
                 glColor4f(add.r * add.a, add.g * add.a, add.b * add.a, 1.f);
@@ -59,6 +63,10 @@ void R_drawRect(CVec origin, float z, CVec size, CColor add, CColor mod)
                 glDrawArrays(GL_QUADS, 0, 4);
                 CCount_add(&r_countFaces, 2);
         }
+
+        /* Remember to re-enable depth testing */
+        if (z <= 0)
+                glEnable(GL_DEPTH_TEST);
 
         R_checkErrors();
 }

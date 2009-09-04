@@ -32,18 +32,8 @@ bool GEntityClass_parseToken(GEntityClass *entity, FILE *file,
 {
         /* The entity display sprite (usually for the editor) */
         if (!strcasecmp(token, "sprite")) {
-
-                /* Inline sprite definition */
-                if (C_openBrace(file)) {
-                        R_parseSpriteSection(file, entity->named.name);
-                        C_strncpy_buf(entity->spriteName, entity->named.name);
-                        C_closeBrace(file);
-                }
-
-                /* Sprite name */
-                else
-                        C_strncpy_buf(entity->spriteName, C_token(file));
-
+                R_parseInlineSprite(file, entity->named.name,
+                                    entity->spriteName);
                 if (entity->size.x <= 0 && entity->size.y <= 0)
                         entity->size = R_spriteSize(entity->spriteName);
         }
@@ -146,6 +136,8 @@ void G_parseConfig(const char *filename)
                         GGroup_parseClass(file, className);
                 else if (!strcasecmp(baseName, "missile"))
                         GMissile_parseClass(file, className);
+                else if (!strcasecmp(baseName, "jumper"))
+                        GJumper_parseClass(file, className);
                 else if (!strcasecmp(baseName, "sprite"))
                         R_parseSpriteSection(file, className);
                 else
