@@ -56,15 +56,21 @@ vars:
 
 # Make a dummy config file if we don't have one
 Makefile.config:
-	echo "# Precompiled header (GCC 4+ only)\nGCH := 1" > Makefile.config
-	echo "\n# Debug mode\nCHECKED := 1" >> Makefile.config
-	echo "\n# Installation prefix\nPREFIX := ." >> Makefile.config
+	echo "# Precompiled header (GCC 4+ only)" > Makefile.config
+	echo "GCH := 1" >> Makefile.config
+	echo "" >> Makefile.config
+	echo "# Debug mode" >> Makefile.config
+	echo "CHECKED := 1" >> Makefile.config
+	echo "" >> Makefile.config
+	echo "# Installation prefix" >> Makefile.config
+	echo "PREFIX := ." >> Makefile.config
 
 # Configuration header
 $(CONFIG_H): Makefile Makefile.config $(CONFIG_H_IN)
 	@mkdir -p $(dir $@)
 	cat $(CONFIG_H_IN) > $(CONFIG_H)
-	echo "\n// Configured parameters" >> $(CONFIG_H)
+	echo "" >> $(CONFIG_H)
+	echo "// Configured parameters" >> $(CONFIG_H)
 	echo "#define PACKAGE \"$(PACKAGE)\"" >> $(CONFIG_H)
 	echo "#define PACKAGE_STRING \"$(PACKAGE_STRING)\"" >> $(CONFIG_H)
 	echo "#define PKGDATADIR \"$(PREFIX)/dragoon\"" >> $(CONFIG_H)
