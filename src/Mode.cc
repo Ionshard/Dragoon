@@ -18,14 +18,12 @@
 
 namespace dragoon {
 
-Variable Mode::clear$("clear", true);
 Variable Mode::fullscreen$("fullscreen", false, "Render fullscreen window");
-Variable Mode::height$("height", 768, "Screen/window resolution height");
-Variable Mode::height_target$("height_target", 480,
-                              "Desired in-game screen height");
 Variable Mode::width$("width", 1024, "Screen/window resolution width");
-Variable Mode::width_target$("width_target", 640,
-                             "Desired in-game screen width");
+Variable Mode::height$("height", 768, "Screen/window resolution height");
+Variable Mode::clear$("clear", true);
+Variable Mode::width_target$("width_target", 640);
+Variable Mode::height_target$("height_target", 480);
 Count Mode::faces$;
 int Mode::init_frame$;
 int Mode::scale$;

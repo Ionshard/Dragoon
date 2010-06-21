@@ -49,7 +49,7 @@ void Menu::Entry::Update(float menu_fade, float menu_width, Vec<2> menu_explode,
   Color color;
 
   // Entry label
-  if (!enabled_) {
+  if (!enabled()) {
     color = Color(1, 1, 1, disabled_fade$);
     label_.set_jiggle_radius(0);
   } else {
@@ -65,7 +65,7 @@ void Menu::Entry::Update(float menu_fade, float menu_width, Vec<2> menu_explode,
 
   // Render options
   if (options_.size() > 0) {
-    if (!enabled_) {
+    if (!enabled()) {
       Text& text = options_[selected_]->text_;
       text.set_origin(Vec<2>(menu_width - text.size().x(),
                              label_.origin().y()));
@@ -121,7 +121,7 @@ void Menu::Add(Entry* entry, float margin) {
 void Menu::Scroll(bool up) {
   for (int i = selected_ + 1; i < selected_; up ? ++i : --i) {
     math::Wrap(i, 0, (int)entries_.size() - 1);
-    if (entries_[i]->enabled_) {
+    if (entries_[i]->enabled()) {
       selected_ = i;
       break;
     }

@@ -11,7 +11,7 @@
 ################################################################################
 
 # Configuration
-include Makefile.config
+-include Makefile.config
 
 # Paths
 BUILD := build
@@ -53,6 +53,12 @@ vars:
 	@echo "OBJECTS = $(OBJECTS)"
 	@echo "DEPS = $(DEPS)"
 .PHONY: all clean distclean realclean vars
+
+# Make a dummy config file if we don't have one
+Makefile.config:
+	echo "# Precompiled header (GCC 4+ only)\nGCH := 1" > Makefile.config
+	echo "\n# Debug mode\nCHECKED := 1" >> Makefile.config
+	echo "\n# Installation prefix\nPREFIX := ." >> Makefile.config
 
 # Configuration header
 $(CONFIG_H): Makefile Makefile.config $(CONFIG_H_IN)

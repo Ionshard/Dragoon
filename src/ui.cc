@@ -37,9 +37,11 @@ void Init() {
   Text::set_default_font(new Text::Font(Texture::Load(font_name$.c_str()),
                                         ' ', 16, 6));
   // Main menu
-  main_menu$.Add(new Menu::Entry("New Game"), OnNewGame);
-  main_menu$.Add(new Menu::Entry("Continue"));
-  main_menu$.Add(new Menu::Entry("Options"), OnOptions);
+  main_menu$.Add(new Menu::Entry("New Game", OnNewGame));
+  Menu::Entry* entry = new Menu::Entry("Continue");
+  entry->set_enabled(false);
+  main_menu$.Add(entry);
+  main_menu$.Add(new Menu::Entry("Options", OnOptions));
   main_menu$.Add(new Menu::Entry("Quit", OnExit), 4);
   menus$.push_back(&main_menu$);
 }
