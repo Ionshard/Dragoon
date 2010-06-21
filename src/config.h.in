@@ -1,0 +1,44 @@
+/******************************************************************************\
+ Dragoon - Copyright (C) 2010 - Michael Levin
+
+ This program is free software; you can redistribute it and/or modify it under
+ the terms of the GNU General Public License as published by the Free Software
+ Foundation; either version 2, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+\******************************************************************************/
+
+// OpenGL
+#include <GL/gl.h>
+#include <GL/glext.h>
+#include <GL/glu.h>
+
+// SDL
+#include <SDL.h>
+#include <SDL_main.h>
+
+// libpng
+#include <png.h>
+
+// Unix
+#if !WINDOWS
+#include <unistd.h>
+#include <signal.h>
+#include <strings.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
+
+// Standard
+#include <cerrno>
+#include <cmath>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <list>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
