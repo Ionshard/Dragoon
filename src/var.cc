@@ -12,13 +12,67 @@
 
 #include "log.h"
 #include "Config.h"
-#include "Variable.h"
+#include "var.h"
 
 namespace dragoon {
+namespace var {
 
-ptr::Scope<Variable::variables$T> Variable::variables$;
+namespace {
+  typedef std::map<std::string, String*> variables$T;
 
-const char* Variable::c_str() {
+  ptr::Scope<variables$T> variables$;
+
+  bool CheckBool(const char* s) {
+    return !strcasecmp(s, "yes") || !strcasecmp(s, "true");
+  }
+}
+
+String::String(const char* name, const char* value, const char* comment):
+  name_(name), comment_(comment), string_(NULL)
+{
+  if (!variables$)
+    variables$ = new variables$T();
+  std::string name_string(name);
+  if (variables$->count(name_string) > 0)
+    ERROR("Redeclared variable '%s'", name);
+  (*variables$)[name_string] = this;
+  *this = value;
+  string_default_ = string_ ? strdup(string_) : NULL;
+}
+
+String::~String() {
+  if (variables$)
+    variables$->erase(std::string(name_));
+  Clear();
+}
+
+String* Get(const char* name) {
+  return variables$->count(name) > 0 ? (*variables$)[name] : NULL;
+}
+
+void String::Clear() {
+  free(string_);
+  string_ = NULL;
+  free(string_default_);
+  string_default_ = NULL;
+}
+
+String& String::operator=(const char* s) {
+  free(string_);
+  string_ = s ? strdup(s) : NULL;
+  return *this;
+}
+
+void String::Write(FILE* f) {
+  if (comment_ && (((string_ != NULL) != (string_default_ != NULL)) ||
+                   (string_ && strcmp(string_, string_default_)))) {
+    if (comment_[0])
+      fprintf(f, "\n# %s\n", comment_);
+    fprintf(f, "%s \"%s\"\n", name_, c_str());
+  }
+}
+
+const char* Float::c_str() {
   if (!string_) {
     string_ = (char *)malloc(16);
     snprintf(string_, 16, "%g", float_);
@@ -26,30 +80,30 @@ const char* Variable::c_str() {
   return string_;
 }
 
-void Variable::Clear() {
-  free(string_);
-  string_ = NULL;
-  free(string_default_);
-  string_default_ = NULL;
+void Float::Clear() {
+  String::Clear();
+  float_ = 0;
+  float_default_ = 0;
 }
 
-Variable& Variable::operator=(Variable& v) {
-  free(string_);
-  string_ = strdup(v.c_str());
-  float_ = v;
-  return *this;
+void Float::Write(FILE* f) {
+  if (comment_ && float_ != float_default_) {
+    if (comment_[0])
+      fprintf(f, "\n# %s\n", comment_);
+    fprintf(f, "%s %g\n", name_, float_);
+  }
 }
 
-Variable& Variable::operator=(const char* s) {
-  free(string_);
+Float& Float::operator=(const char* s) {
   if (s) {
     float_ = atof(string_ = strdup(s));
-    CheckBool();
+    if (CheckBool(string_))
+      float_ = 1;
   }
   return *this;
 }
 
-Variable& Variable::operator=(float f) {
+Float& Float::operator=(float f) {
   if (string_) {
     free(string_);
     string_ = NULL;
@@ -58,26 +112,52 @@ Variable& Variable::operator=(float f) {
   return *this;
 }
 
-void Variable::CheckBool() {
-  if (!strcasecmp(string_, "yes") || !strcasecmp(string_, "true"))
-    float_ = 1;
+const char* Int::c_str() {
+  if (!string_) {
+    string_ = (char *)malloc(16);
+    snprintf(string_, 16, "%d", int_);
+  }
+  return string_;
 }
 
-void Variable::Write(FILE* f) {
-  if (comment_ && (float_ != float_default_ ||
-                   ((string_ != NULL) != (string_default_ != NULL)) ||
-                   (string_ && strcmp(string_, string_default_)))) {
+void Int::Clear() {
+  String::Clear();
+  int_ = 0;
+  int_default_ = 0;
+}
+
+void Int::Write(FILE* f) {
+  if (comment_ && int_ != int_default_) {
     if (comment_[0])
       fprintf(f, "\n# %s\n", comment_);
-    fprintf(f, "%s \"%s\"\n", name_, c_str());
+    fprintf(f, "%s %d\n", name_, int_);
   }
 }
 
-void Variable::LoadConfig(const char* path) {
+Int& Int::operator=(const char* s) {
+  if (s) {
+    char* end_ptr;
+    int_ = strtol(string_ = strdup(s), &end_ptr, 0);
+    if (CheckBool(string_))
+      int_ = 1;
+  }
+  return *this;
+}
+
+Int& Int::operator=(float i) {
+  if (string_) {
+    free(string_);
+    string_ = NULL;
+  }
+  int_ = i;
+  return *this;
+}
+
+void LoadConfig(const char* path) {
   Config config(path);
   for (const Config::Node* n = config.root(); n; n = n->next()) {
     const char* name = n->token(0);
-    Variable* var;
+    String* var;
     if (n->child())
       WARN("%s:%d: Variable '%s' child block ignored", path, n->line(), name);
     if (!(var = Get(name)))
@@ -93,9 +173,9 @@ void Variable::LoadConfig(const char* path) {
   }
 }
 
-void Variable::ParseArgs(int argc, char* argv[]) {
+void ParseArgs(int argc, char* argv[]) {
   for (int i = 1; i < argc; i += 2) {
-    Variable* var = Get(argv[i]);
+    String* var = Get(argv[i]);
     if (!var)
       WARN("Command-line variable '%s' not found", argv[i]);
     else {
@@ -108,7 +188,7 @@ void Variable::ParseArgs(int argc, char* argv[]) {
   }
 }
 
-void Variable::SaveConfig(const char* path) {
+void SaveConfig(const char* path) {
   FILE* f = fopen(path, "w");
   if (!f) {
     WARN("Failed to open configuration file '%s' for writing", path);
@@ -125,4 +205,5 @@ void Variable::SaveConfig(const char* path) {
   DEBUG("Saved configuration file '%s'", path);
 }
 
+} // namespace var
 } // namespace dragoon

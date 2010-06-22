@@ -50,6 +50,9 @@ public:
   /** Get texture name */
   const char* name() const { return name_.c_str(); }
 
+  /** Get surface */
+  Surface& surface() { return surface_; }
+
   /** Deselect current OpenGL texture */
   static void Deselect() { glDisable(GL_TEXTURE_2D); }
 

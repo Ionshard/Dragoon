@@ -25,8 +25,7 @@ public:
   class Entry: public param::Enabled {
   public:
     struct Option {
-      Option(const char* text, float value):
-        text_(text), fade_(0), value_(value) {}
+      Option(const char* text, float value): text_(text), value_(value) {}
 
       Text text_;
       float fade_;
@@ -35,7 +34,7 @@ public:
 
     /** Initialize entry with label */
     Entry(const char* label, void (*on_activate)(float) = NULL):
-      label_(label), on_activate_(on_activate) {}
+      label_(label), on_activate_(on_activate), jiggle_(0) {}
 
     /** Activate menu item */
     void Activate(bool next = true);
@@ -62,7 +61,7 @@ public:
     ptr::Scope<Option>::Vector options_;
     Text label_;
     void (*on_activate_)(float);
-    float fade_;
+    float jiggle_;
     int selected_;
   };
 

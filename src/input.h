@@ -12,8 +12,8 @@
 
 #pragma once
 #include "log.h"
+#include "var.h"
 #include "Vec.h"
-#include "Variable.h"
 
 namespace dragoon {
 namespace input {
@@ -47,10 +47,10 @@ private:
   int code_;
   bool down_;
 
-  static Variable bind_up$;
-  static Variable bind_down$;
-  static Variable bind_left$;
-  static Variable bind_right$;
+  static var::Int bind_up$;
+  static var::Int bind_down$;
+  static var::Int bind_left$;
+  static var::Int bind_right$;
   static Vec<2> motion$;
   static bool ctrl$;
   static bool alt$;

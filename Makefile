@@ -33,7 +33,7 @@ else
 	CONFIG_H_GCH := $(CONFIG_H)
 endif
 CFLAGS += -include $(CONFIG_H) $(shell sdl-config --cflags)
-LDFLAGS += $(shell sdl-config --libs) -lm -lGL -lGLU -lpng
+LDFLAGS += $(shell sdl-config --libs) -lm -lGL -lGLU -lpng -lSDL_ttf
 
 # Make list of source files
 SOURCES := $(shell find $(SOURCE) -name \*.cc)

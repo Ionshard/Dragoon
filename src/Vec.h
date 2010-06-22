@@ -203,6 +203,17 @@ public:
   void SelectAdd()
     { glColor4f(v_[0] * v_[3], v_[1] * v_[3], v_[2] * v_[3], 1); }
 
+  /** Blend onto another color */
+  Color Blend(Color bg) {
+    float w = (1 - v_[3]) * bg.v_[3];
+    float a = v_[3] + w;
+    if (a)
+      return Color((v_[0] * v_[3] + w * bg.v_[0]) / a,
+                   (v_[1] * v_[3] + w * bg.v_[1]) / a,
+                   (v_[2] * v_[3] + w * bg.v_[2]) / a, a);
+    return Color(0, 0, 0, 0);
+  }
+
   /** Named colors */
   static Color black() { return Color(0, 0, 0, 1); }
   static Color white() { return Color(1, 1, 1, 1); }

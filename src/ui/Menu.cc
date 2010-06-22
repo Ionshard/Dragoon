@@ -11,7 +11,7 @@
 \******************************************************************************/
 
 #include "../math.h"
-#include "../Variable.h"
+#include "../var.h"
 #include "Menu.h"
 
 namespace dragoon {
@@ -20,12 +20,12 @@ namespace ui {
 namespace {
 
   // Visual params for menu entries
-  Variable jiggle_rate$("menu.jiggle_rate", 4);
-  Variable jiggle_radius$("menu.jiggle_radius", 1);
-  Variable jiggle_speed$("menu.jiggle_speed", 0.01);
-  Variable entry_fade$("menu.entry_fade", 0.5);
-  Variable disabled_fade$("menu.disabled_fade", 0.15);
-  Variable fade$("menu.fade", 1);
+  var::Float jiggle_rate$("menu.jiggle_rate", 4);
+  var::Float jiggle_radius$("menu.jiggle_radius", 1);
+  var::Float jiggle_speed$("menu.jiggle_speed", 0.01);
+  var::Float entry_fade$("menu.entry_fade", 0.5);
+  var::Float disabled_fade$("menu.disabled_fade", 0.15);
+  var::Float fade$("menu.fade", 1);
 }
 
 void Menu::Entry::Activate(bool next) {
@@ -46,17 +46,16 @@ void Menu::Entry::Activate(bool next) {
 
 void Menu::Entry::Update(float menu_fade, float menu_width, Vec<2> menu_explode,
                          bool selected) {
-  Color color;
 
   // Entry label
+  Color color = Color::white();
   if (!enabled()) {
-    color = Color(1, 1, 1, disabled_fade$);
+    color[3] = disabled_fade$;
     label_.set_jiggle_radius(0);
   } else {
-    math::Fade(fade_, selected, jiggle_rate$);
-    label_.set_jiggle_radius(fade_ * jiggle_radius$);
+    math::Fade(jiggle_, selected, jiggle_rate$);
+    label_.set_jiggle_radius(jiggle_ * jiggle_radius$);
     label_.set_jiggle_speed(jiggle_speed$);
-    color = Color(1, 1, 1, 1 - fade_ * (1 - fade_));
   }
   color[3] *= menu_fade;
   label_.set_modulate(color);
@@ -67,7 +66,7 @@ void Menu::Entry::Update(float menu_fade, float menu_width, Vec<2> menu_explode,
   if (options_.size() > 0) {
     if (!enabled()) {
       Text& text = options_[selected_]->text_;
-      text.set_origin(Vec<2>(menu_width - text.size().x(),
+      text.set_origin(Vec<2>(menu_width - text.Size().x(),
                              label_.origin().y()));
       text.set_modulate(color);
       text.Draw();
@@ -78,7 +77,7 @@ void Menu::Entry::Update(float menu_fade, float menu_width, Vec<2> menu_explode,
         math::Fade(opt.fade_, i == selected_, 4);
         Color mod = color;
         mod[3] *= opt.fade_;
-        opt.text_.set_origin(Vec<2>(menu_width - opt.text_.size().x(),
+        opt.text_.set_origin(Vec<2>(menu_width - opt.text_.Size().x(),
                                     label_.origin().y()));
         if (i == selected_) {
           opt.text_.set_jiggle_radius(label_.jiggle_radius());
@@ -102,7 +101,7 @@ void Menu::Entry::Update(float menu_fade, float menu_width, Vec<2> menu_explode,
 }
 
 float Menu::Entry::Position(Vec<2> origin, float width) {
-  Vec<2> size = label_.size();
+  Vec<2> size = label_.Size();
 
   // Center entries that don't have any options
   if (!options_.size())
@@ -119,7 +118,8 @@ void Menu::Add(Entry* entry, float margin) {
 }
 
 void Menu::Scroll(bool up) {
-  for (int i = selected_ + 1; i < selected_; up ? ++i : --i) {
+  int n = up ? 1 : -1;
+  for (int i = selected_ + n; i != selected_; i += n) {
     math::Wrap(i, 0, (int)entries_.size() - 1);
     if (entries_[i]->enabled()) {
       selected_ = i;

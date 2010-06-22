@@ -11,19 +11,19 @@
 \******************************************************************************/
 
 #include "log.h"
+#include "var.h"
 #include "Timer.h"
-#include "Variable.h"
 #include "Texture.h"
 #include "Mode.h"
 
 namespace dragoon {
 
-Variable Mode::fullscreen$("fullscreen", false, "Render fullscreen window");
-Variable Mode::width$("width", 1024, "Screen/window resolution width");
-Variable Mode::height$("height", 768, "Screen/window resolution height");
-Variable Mode::clear$("clear", true);
-Variable Mode::width_target$("width_target", 640);
-Variable Mode::height_target$("height_target", 480);
+var::Bool Mode::fullscreen$("mode.fullscreen", false,
+                            "Render fullscreen window");
+var::Int Mode::width$("mode.width", 1024, "Screen/window resolution width");
+var::Int Mode::height$("mode.height", 768, "Screen/window resolution height");
+var::Bool Mode::clear$("mode.clear", true);
+var::Int Mode::target_height$("mode.target_height", -1);
 Count Mode::faces$;
 int Mode::init_frame$;
 int Mode::scale$;
@@ -42,10 +42,8 @@ void Mode::Set(int width, int height, bool fullscreen) {
   int flags;
 
   // Ensure a minimum render size
-  if (width < width_target$)
-    width = width_target$;
-  if (height < height_target$)
-    height = height_target$;
+  if (target_height$ > 0 && height < target_height$)
+    height = target_height$;
 
   // Reset textures for resolution change
   Texture::Reset();
@@ -65,10 +63,16 @@ void Mode::Set(int width, int height, bool fullscreen) {
   fullscreen$ = fullscreen;
 
   // Get the actual screen size
-  scale$ = (video->h + height_target$ - 1) / height_target$;
-  height_scaled$ = video->h / scale$;
-  height_scaled$ += (video->h - scale$ * height_scaled$) / scale$;
-  width_scaled$ = video->w * height_scaled$ / video->h;
+  if (target_height$ > 0) {
+    scale$ = (video->h + target_height$ - 1) / target_height$;
+    height_scaled$ = video->h / scale$;
+    height_scaled$ += (video->h - scale$ * height_scaled$) / scale$;
+    width_scaled$ = video->w * height_scaled$ / video->h;
+  } else {
+    scale$ = 1;
+    height_scaled$ = video->h;
+    width_scaled$ = video->w;
+  }
   DEBUG("Set %s mode %dx%d (%dx%d scaled), scale factor %d",
         fullscreen ? "fullscreen" : "windowed", video->w, video->h,
         width_scaled$, height_scaled$, scale$);

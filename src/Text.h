@@ -27,7 +27,7 @@ public:
   class Font: public ptr::Wrap<Texture> {
   public:
 
-    /** Initialize font sheet
+    /** Initialize font sheet from grid texture.
      *  @param texture  Font texture
      *  @param first    First character on the font sheet
      *  @param cols     Font sheet columns
@@ -43,10 +43,24 @@ public:
         WARN("Font texture '%s' invalid", texture ? texture->name() : "(null)");
     }
 
+    /** Initialize font sheet from monospace TTF font file.
+     *  @param filename  Font file path
+     */
+    Font(const char* filename, float size, float scale = 1);
+
+    /** Get character dimensions */
+    Vec<2> size(int ch = 0) const {
+      Vec<2> size = box_size_;
+      if (widths_ && ch >= first_ && ch < first_ + cols_ * rows_)
+        size[0] = widths_[ch - first_];
+      return size * scale_;
+    }
+
   protected:
     friend class Text;
 
     Vec<2> box_size_;
+    ptr::Scope<int, ptr::DeleteArray> widths_;
     float scale_;
     int first_;
     int cols_;
@@ -60,7 +74,7 @@ public:
   }
 
   /** Center the text object on a point */
-  void CenterOn(Vec<2> origin) { origin_ = origin - size() / 2; }
+  void CenterOn(Vec<2> origin) { origin_ = origin - Size() / 2; }
 
   /** Draw the text object on screen */
   void Draw();
@@ -75,8 +89,7 @@ public:
   void SetText(const char* string);
 
   /** Returns the dimensions of the text object */
-  Vec<2> size()
-    { return font_->box_size_ * scale_ * Vec<2>(string_.length(), 1); }
+  Vec<2> Size();
 
   /** Specify font object used when no font is given to a Text object */
   static void set_default_font(Font* font) { default_font_ = font; }

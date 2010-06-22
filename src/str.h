@@ -10,36 +10,24 @@
  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 \******************************************************************************/
 
-// OpenGL
-#include <GL/gl.h>
-#include <GL/glext.h>
-#include <GL/glu.h>
+#pragma once
 
-// SDL
-#include <SDL.h>
-#include <SDL_main.h>
-#include <SDL_ttf.h>
+namespace dragoon {
+namespace str {
 
-// libpng
-#include <png.h>
+  /** Returns true if \c s ends with \c end. */
+  static inline bool EndsWith(const char* s, const char* end,
+                              bool ignore_case = false) {
+    size_t s_len = strlen(s);
+    size_t end_len = strlen(end);
+    if (s_len >= end_len) {
+      if (ignore_case)
+        return !strcmp(s + s_len - end_len, end);
+      else
+        return !strcasecmp(s + s_len - end_len, end);
+    }
+    return false;
+  }
 
-// Unix
-#if !WINDOWS
-#include <unistd.h>
-#include <signal.h>
-#include <strings.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#endif
-
-// Standard
-#include <cerrno>
-#include <cmath>
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <list>
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+} // namespace dragoon
+} // namespace str

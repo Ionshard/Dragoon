@@ -11,8 +11,8 @@
 \******************************************************************************/
 
 #pragma once
+#include "var.h"
 #include "Count.h"
-#include "Variable.h"
 
 namespace dragoon {
 
@@ -60,12 +60,11 @@ public:
   static Count faces$;
 
 private:
-  static Variable height$;
-  static Variable height_target$;
-  static Variable width$;
-  static Variable width_target$;
-  static Variable clear$;
-  static Variable fullscreen$;
+  static var::Int target_height$;
+  static var::Int height$;
+  static var::Int width$;
+  static var::Bool clear$;
+  static var::Bool fullscreen$;
   static int height_scaled$;
   static int init_frame$;
   static int scale$;

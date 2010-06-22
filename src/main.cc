@@ -17,7 +17,6 @@
 #include "Mode.h"
 #include "Sprite.h"
 #include "Text.h"
-#include "Menu.h"
 
 namespace dragoon {
   namespace {
@@ -34,7 +33,7 @@ namespace dragoon {
         already_ran = true;
 
         DEBUG("Cleaning up");
-        Variable::SaveConfig(config_name$.c_str());
+        var::SaveConfig(config_name$.c_str());
         SDL_Quit();
       } catch (log::Exception e) {
         e.Print();
@@ -64,16 +63,16 @@ int main(int argc, char* argv[]) {
     os::HandleSignals(CaughtSignal);
 
     // Register variables
-    Variable debug_prints("debug_prints", false, "Test debug print-outs");
-    Variable edit_map("edit", "");
-    Variable play_map("play", "");
+    var::Bool debug_prints("debug.prints");
+    var::String edit_map("debug.edit");
+    var::String play_map("debug.play");
 
     // Load variables
     config_name$ = os::UserDir();
     config_name$ += "/autogen.cfg";
-    Variable::LoadConfig("data/defaults.cfg");
-    Variable::LoadConfig(config_name$.c_str());
-    Variable::ParseArgs(argc, argv);
+    var::LoadConfig("data/defaults.cfg");
+    var::LoadConfig(config_name$.c_str());
+    var::ParseArgs(argc, argv);
 
     // Test debug prints
     if (debug_prints) {
@@ -85,20 +84,23 @@ int main(int argc, char* argv[]) {
     // Seed random number generator
     srand(time(NULL));
 
-    // Get compiled SDL library version
-    SDL_version compiled;
-    SDL_VERSION(&compiled);
-    DEBUG("Compiled with SDL %d.%d.%d",
-          compiled.major, compiled.minor, compiled.patch);
-
-    // Get linked SDL library version
-    const SDL_version *linked = SDL_Linked_Version();
-    if (linked)
-      DEBUG("Linked with SDL %d.%d.%d",
-            linked->major, linked->minor, linked->patch);
+    // Get compiled SDL library versions
+    SDL_version sdl_compiled;
+    SDL_VERSION(&sdl_compiled);
+    SDL_version ttf_compiled;
+    TTF_VERSION(&ttf_compiled);
+    DEBUG("Compiled with SDL %d.%d.%d, SDL_ttf %d.%d.%d",
+          sdl_compiled.major, sdl_compiled.minor, sdl_compiled.patch,
+          ttf_compiled.major, ttf_compiled.minor, ttf_compiled.patch);
+    const SDL_version *sdl_linked = SDL_Linked_Version();
+    const SDL_version *ttf_linked = TTF_Linked_Version();
+    if (sdl_linked && ttf_linked)
+      DEBUG("Linked with SDL %d.%d.%d, SDL_ttf %d.%d.%d",
+            sdl_linked->major, sdl_linked->minor, sdl_linked->patch,
+            ttf_linked->major, ttf_linked->minor, ttf_linked->patch);
 
     // Initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0 || TTF_Init() < 0)
       ERROR("Failed to initialize SDL: %s", SDL_GetError());
     SDL_WM_SetCaption(PACKAGE_STRING, PACKAGE);
     SDL_ShowCursor(SDL_DISABLE);

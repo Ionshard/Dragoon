@@ -18,7 +18,7 @@ namespace dragoon {
 namespace draw {
 
 void rect(Vec<2> origin, float z, Vec<2> size, Color mod, Color add) {
-  if (z < 0.f)
+  if (z < 0.f || (mod.a() <= 0 && add.a() <= 0))
     return;
 
   // Setup quad

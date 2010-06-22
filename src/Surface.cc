@@ -354,12 +354,44 @@ void Surface::Scale(Surface& dest, int scale_x, int scale_y, int dx, int dy) {
 }
 
 void Surface::Blit(Surface& dest, int sx, int sy, int sw, int sh,
+                   int dx, int dy) {
+  if (Lock()) {
+    if (dest.Lock()) {
+      for (int y = 0; y < sh; y++)
+        for (int x = 0; x < sw; x++)
+          dest.Put(dx + x, dy + y, Get(sx + x, sy + y));
+      dest.Unlock();
+    }
+    Unlock();
+  }
+}
+
+void Surface::Blit(Surface& dest, int sx, int sy, int sw, int sh,
                    int dx, int dy, int dw, int dh) {
   if (Lock()) {
     if (dest.Lock()) {
       for (int y = 0; y < dh; y++)
         for (int x = 0; x < dw; x++)
           dest.Put(dx + x, dy + y, Get(sx + x * sw / dw, sy + y * sh / dh));
+      dest.Unlock();
+    }
+    Unlock();
+  }
+}
+
+void Surface::BlitShadowed(Surface& dest, int sx, int sy, int sw, int sh,
+                           int dx, int dy, int sh_x, int sh_y, Color shadow) {
+  ASSERT(sh_x >= 0 && sh_y >= 0);
+  if (Lock()) {
+    if (dest.Lock()) {
+      for (int y = 0; y < sh; y++)
+        for (int x = 0; x < sw; x++) {
+          Color sc = Get(sx + x, sy + y);
+          Color sh = Color::none();
+          if (x > sh_x && y > sh_y)
+            sh = Get(sx + x - sh_x, sy + y - sh_y) * shadow;
+          dest.Put(dx + x, dy + y, sc.Blend(sh));
+        }
       dest.Unlock();
     }
     Unlock();

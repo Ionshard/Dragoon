@@ -17,10 +17,10 @@ namespace dragoon {
 namespace input {
 
 // Key
-Variable Key::bind_up$("bind_up", 'w', "Up key code");
-Variable Key::bind_down$("bind_down", 's', "Down key code");
-Variable Key::bind_left$("bind_left", 'a', "Left key code");
-Variable Key::bind_right$("bind_right", 'd', "Right key code");
+var::Int Key::bind_up$("bind_up", 'w', "Up key code");
+var::Int Key::bind_down$("bind_down", 's', "Down key code");
+var::Int Key::bind_left$("bind_left", 'a', "Left key code");
+var::Int Key::bind_right$("bind_right", 'd', "Right key code");
 Vec<2> Key::motion$;
 bool Key::ctrl$(false);
 bool Key::alt$(false);

@@ -12,18 +12,22 @@
 
 #include "math.h"
 #include "draw.h"
-#include "Menu.h"
+#include "str.h"
 #include "ui.h"
+#include "ui/Menu.h"
 
 namespace dragoon {
 namespace ui {
 
 namespace {
-  Variable font_name$("ui.font", "data/ui/font/large.png");
-  Variable menu_height$("ui.menu_height", "128");
+  var::String font_name$("ui.font_name", "data/ui/font/blemished.ttf");
+  var::Int font_size$("ui.font_size", 8);
+  var::Int menu_height$("ui.menu_height", 128);
+  var::Float bg_fade_rate$("ui.bg_fade_rate", 2);
   Menu main_menu$(160);
   Menu* visible_menu$ = NULL;
   std::list<Menu*> menus$;
+  float bg_fade$;
 
   // Main menu
   void OnNewGame(float) {}
@@ -34,15 +38,20 @@ namespace {
 void Init() {
 
   // Default font
-  Text::set_default_font(new Text::Font(Texture::Load(font_name$.c_str()),
-                                        ' ', 16, 6));
+  Text::Font* def_font;
+  if (str::EndsWith(font_name$.c_str(), ".png", true))
+    def_font = new Text::Font(Texture::Load(font_name$.c_str()), ' ', 16, 6);
+  else
+    def_font = new Text::Font(font_name$.c_str(), font_size$);
+  Text::set_default_font(def_font);
+
   // Main menu
   main_menu$.Add(new Menu::Entry("New Game", OnNewGame));
   Menu::Entry* entry = new Menu::Entry("Continue");
   entry->set_enabled(false);
   main_menu$.Add(entry);
   main_menu$.Add(new Menu::Entry("Options", OnOptions));
-  main_menu$.Add(new Menu::Entry("Quit", OnExit), 4);
+  main_menu$.Add(new Menu::Entry("Quit", OnExit), 16);
   menus$.push_back(&main_menu$);
 }
 
@@ -91,9 +100,10 @@ void Update() {
     return;
 
   // Background
-  if (visible_menu$)
-    draw::rect(Vec<2>(0, Mode::height() * 2 / 3 - menu_height$ / 2), 0,
-               Vec<2>(Mode::width(), menu_height$), Color(0, 0, 0, 0.5));
+  math::Fade(bg_fade$, visible_menu$, bg_fade_rate$);
+  draw::rect(Vec<2>(0, Mode::height() * 2 / 3 - menu_height$ / 2), 0,
+             Vec<2>(Mode::width(), menu_height$),
+             Color(0, 0, 0, 0.5 * bg_fade$));
 
   // Update menus
   for (std::list<Menu*>::iterator it = menus$.begin(), end = menus$.end();

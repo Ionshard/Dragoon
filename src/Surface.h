@@ -19,8 +19,9 @@ namespace dragoon {
 class Surface: public ptr::Scope<SDL_Surface, SDL_FreeSurface> {
 public:
 
-  /** Initialize a null pointer */
-  Surface(): lock_(0) {}
+  /** Initialize with surface pointer */
+  Surface(SDL_Surface* surf = NULL):
+    ptr::Scope<SDL_Surface, SDL_FreeSurface>(surf), lock_(0) {}
 
   /** Loads a PNG file and allocates a new SDL surface for it.
       Based on tutorial implementation in the libpng manual:
@@ -62,9 +63,16 @@ public:
   /** Scale blit a surface to a destination surface by an integer size */
   void Scale(Surface& dest, int scale_x, int scale_y, int dx, int dy);
 
+  /** Fast surface blit */
+  void Blit(Surface& dest, int sx, int sy, int sw, int sh, int dx, int dy);
+
   /** Resizing surface blit */
   void Blit(Surface& dest, int sx, int sy, int sw, int sh,
             int dx, int dy, int dw, int dh);
+
+  /** Blit and add a shadow */
+  void BlitShadowed(Surface& dest, int sx, int sy, int sw, int sh,
+                    int dx, int dy, int sh_x, int sh_y, Color shadow);
 
   /** Returns true if the surface is valid */
   bool Valid() { return ptr_ != NULL && ptr_->w && ptr_->h; }
